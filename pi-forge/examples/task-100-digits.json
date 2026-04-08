@@ -1,0 +1,39 @@
+{
+  "type": "task",
+  "envelope_id": "a1b2c3d4-0000-4000-8000-000000000001",
+  "issued_at": "2026-03-20T23:00:00Z",
+  "issuer": "my-sovereign-node",
+  "channel_id": "chan-pi-forge-local",
+  "task": {
+    "type": "data.compute",
+    "instruction": "Compute pi to the requested number of decimal digits.",
+    "parameters": {
+      "digits": 100
+    }
+  },
+  "context": [
+    {
+      "tier": 2,
+      "role": "task_background",
+      "content": "This is a reference implementation test. No private context is involved."
+    }
+  ],
+  "result_policy": {
+    "persist_to_shared": [
+      "pi",
+      "digits_computed"
+    ],
+    "return_only": [],
+    "strip_before_persist": []
+  },
+  "dispatch_signature": {
+    "key_scheme": "none",
+    "node_id": "my-sovereign-node",
+    "channel_id": "chan-pi-forge-local",
+    "policy_hash": null,
+    "shadows_generated": [],
+    "timestamp": "2026-03-20T23:00:00Z",
+    "sig": null
+  },
+  "thermocline": "0.3.0"
+}

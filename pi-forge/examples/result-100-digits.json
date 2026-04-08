@@ -1,0 +1,28 @@
+{
+  "type": "task_result",
+  "envelope_id": "a1b2c3d4-0000-4000-8000-000000000001",
+  "result_id": "b2c3d4e5-0000-4000-8000-000000000002",
+  "completed_at": "2026-03-20T23:00:00Z",
+  "responder": "pi-forge-local",
+  "outputs": {
+    "pi": "3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679",
+    "digits_computed": 100,
+    "algorithm": "mpmath"
+  },
+  "provenance": {
+    "shadows_received": [],
+    "tiers_present": [
+      2
+    ],
+    "local_tiers_present": false
+  },
+  "receipt_signature": {
+    "key_scheme": "none",
+    "node_id": "pi-forge-local",
+    "envelope_id": "a1b2c3d4-0000-4000-8000-000000000001",
+    "result_id": "b2c3d4e5-0000-4000-8000-000000000002",
+    "timestamp": "2026-03-20T23:00:00Z",
+    "sig": null
+  },
+  "thermocline": "0.3.0"
+}

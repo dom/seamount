@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "forge_conformance"
+version = "0.1.0"
+description = "Cross-suite conformance test harness for Thermocline forges (FORGE-04 / FORGE-05)."
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "Thermocline Suite contributors" },
+]
+dependencies = [
+    "thermocline>=0.3.1",
+    "httpx>=0.27",
+    "jsonschema>=4.26",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+forge-conformance = "forge_conformance.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["forge_conformance*"]

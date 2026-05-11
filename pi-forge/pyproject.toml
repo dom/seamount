@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pi-forge"
+version = "0.1.0"
+description = "Thermocline-compliant reference forge: computes pi to N digits"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "flask>=3.0",
+    "mpmath>=1.3",
+    "thermocline>=0.3.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "httpx>=0.27"]
+
+[project.scripts]
+pi-forge = "pi_forge.__main__:main"
+
+[tool.setuptools]
+py-modules = ["server", "envelope", "pi", "forge_identity"]
+packages = ["pi_forge"]

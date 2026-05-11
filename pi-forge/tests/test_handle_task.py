@@ -1,0 +1,109 @@
+"""Tests for the POST /task handler via Flask test_client.
+
+Behaviors 4-6 from Task 2 plan:
+    4. default key_scheme is brine
+    5. FORGE_KEY_SCHEME=none -> dev mode
+    6. brine sig is real (128-char hex)
+"""
+from __future__ import annotations
+
+import json
+import uuid
+
+import keyring
+import pytest
+
+from thermocline.identity import BrineProvider
+
+
+@pytest.fixture()
+def initialized_forge(monkeypatch):
+    """Yield (service, identity, app) with a fresh keypair generated.
+
+    Restores module state between tests via importlib.reload.
+    """
+    service = f"seamount.piforge.test-{uuid.uuid4()}"
+    identity = "pi-forge-local"  # responder identity = node_id; matches default
+    monkeypatch.setenv("PIFORGE_KEYRING_SERVICE", service)
+    monkeypatch.setenv("PIFORGE_IDENTITY", identity)
+    # FORGE_NODE_ID also needs to match the signer identity for self-signed
+    # receipts in tests (server uses FORGE_NODE_ID as the responder).
+    monkeypatch.setenv("FORGE_NODE_ID", identity)
+    provider = BrineProvider(keyring_service=service)
+    provider.generate(identity=identity)
+    import importlib
+    import sys
+    for mod in ("forge_identity", "server"):
+        if mod in sys.modules:
+            importlib.reload(sys.modules[mod])
+    import server  # noqa: E402
+    yield service, identity, server.app
+    try:
+        keyring.delete_password(service, identity)
+    except Exception:
+        pass
+
+
+def _example_task_envelope() -> dict:
+    """Minimal valid envelope using key_scheme=none in the dispatch sig."""
+    return {
+        "thermocline": "0.3.1",
+        "type": "task",
+        "envelope_id": "task-handle-001",
+        "issued_at": "2026-05-11T01:00:00Z",
+        "issuer": "test-sovereign",
+        "task": {
+            "type": "data.compute",
+            "instruction": "compute pi",
+            "parameters": {"digits": 10},
+        },
+        "context": [],
+        "result_policy": {"persist_to_shared": [], "return_only": [], "strip_before_persist": []},
+        "dispatch_signature": {
+            "key_scheme": "none",
+            "node_id": "test-sovereign",
+            "policy_hash": None,
+            "shadows_generated": [],
+            "timestamp": "2026-05-11T01:00:00Z",
+            "sig": None,
+        },
+    }
+
+
+def test_handle_task_default_key_scheme_brine(initialized_forge):
+    """No FORGE_KEY_SCHEME override -> server uses brine and produces a real sig."""
+    service, identity, app = initialized_forge
+    tc = app.test_client()
+    r = tc.post("/task", json=_example_task_envelope())
+    assert r.status_code == 200, r.get_data(as_text=True)
+    body = r.get_json()
+    assert body["receipt_signature"]["key_scheme"] == "brine"
+
+
+def test_handle_task_dev_mode_none(initialized_forge, monkeypatch):
+    """FORGE_KEY_SCHEME=none -> receipt_signature.sig is null (dev mode preserved)."""
+    service, identity, app = initialized_forge
+    monkeypatch.setenv("FORGE_KEY_SCHEME", "none")
+    import importlib
+    import sys
+    importlib.reload(sys.modules["server"])
+    import server  # noqa: E402
+    tc = server.app.test_client()
+    r = tc.post("/task", json=_example_task_envelope())
+    assert r.status_code == 200
+    body = r.get_json()
+    assert body["receipt_signature"]["key_scheme"] == "none"
+    assert body["receipt_signature"]["sig"] is None
+
+
+def test_handle_task_brine_sig_is_real(initialized_forge):
+    """receipt_signature.sig must be 128-char hex (64-byte ed25519 sig)."""
+    service, identity, app = initialized_forge
+    tc = app.test_client()
+    r = tc.post("/task", json=_example_task_envelope())
+    assert r.status_code == 200
+    body = r.get_json()
+    sig_hex = body["receipt_signature"]["sig"]
+    assert isinstance(sig_hex, str)
+    assert len(sig_hex) == 128  # 64 bytes * 2 hex chars
+    int(sig_hex, 16)  # must be valid hex

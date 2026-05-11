@@ -1,0 +1,97 @@
+name: seamount CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  forge-unit-tests:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        forge: [pi-forge, describe-forge]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: seamount
+      - uses: actions/checkout@v4
+        with:
+          repository: dom/thermocline
+          path: thermocline
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install thermocline + forge
+        run: |
+          pip install -e thermocline/thermocline/python/
+          pip install -e seamount/${{ matrix.forge }}/
+      - name: Pytest ${{ matrix.forge }}
+        working-directory: seamount/${{ matrix.forge }}
+        run: pytest tests/ -q
+
+  conformance:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        forge: [pi-forge, describe-forge]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: seamount
+      - uses: actions/checkout@v4
+        with:
+          repository: dom/thermocline
+          path: thermocline
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install thermocline + forge + forge_conformance
+        run: |
+          pip install -e thermocline/thermocline/python/
+          pip install -e seamount/${{ matrix.forge }}/
+          pip install -e seamount/conformance/
+          pip install flask
+      - name: Init + serve ${{ matrix.forge }}
+        run: |
+          MODULE=${{ matrix.forge == 'pi-forge' && 'pi_forge' || 'describe_forge' }}
+          python -m "$MODULE" init --keyring-service seamount.ci-test
+          python -m "$MODULE" serve --keyring-service seamount.ci-test --port 5100 &
+          sleep 3
+      - name: Run forge_conformance against ${{ matrix.forge }}
+        run: |
+          python -m forge_conformance \
+            --target http://127.0.0.1:5100 \
+            --role ${{ matrix.forge }} \
+            --output json
+
+  forge-conformance-harness-tests:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: seamount
+      - uses: actions/checkout@v4
+        with:
+          repository: dom/thermocline
+          path: thermocline
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install thermocline + all forges + conformance
+        run: |
+          pip install -e thermocline/thermocline/python/
+          pip install -e seamount/pi-forge/
+          pip install -e seamount/describe-forge/
+          pip install -e seamount/conformance/[dev]
+          pip install flask
+      - name: Init both forges (for harness test fixtures)
+        run: |
+          python -m pi_forge init --keyring-service seamount.piforge || true
+          python -m describe_forge init --keyring-service seamount.describeforge || true
+      - name: Run forge_conformance own tests
+        working-directory: seamount/conformance
+        run: pytest tests/ -q

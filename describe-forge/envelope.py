@@ -10,8 +10,8 @@ Key differences from pi-forge envelope.py:
   only validates schema shape.
 
 Real ed25519 brine sign/verify via thermocline-py; canonical-JSON signing input
-via thermocline.canonical.canonicalize. NO stubs, NO json.dumps in the signing
-path.
+via thermocline.canonical.canonicalize. No stubs; non-canonical JSON is never
+used in the signing path (DISP-04 invariant).
 """
 
 import copy

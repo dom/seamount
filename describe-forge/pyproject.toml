@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "describe-forge"
+version = "0.1.0"
+description = "Thermocline reference forge: templated descriptions of tier-1 shadows"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "flask>=3.0",
+    "thermocline>=0.3.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "httpx>=0.27"]
+
+[project.scripts]
+describe-forge = "describe_forge.__main__:main"
+
+[tool.setuptools]
+py-modules = ["server", "envelope", "describe", "forge_identity"]
+packages = ["describe_forge"]

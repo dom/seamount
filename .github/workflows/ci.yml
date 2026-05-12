@@ -7,6 +7,30 @@ on:
     branches: [main]
 
 jobs:
+  lint-and-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: seamount
+      - uses: actions/checkout@v4
+        with:
+          repository: graywhale/thermocline
+          path: thermocline
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Print lint (CONF-06)
+        working-directory: seamount
+        run: python tools/ast_lint_no_print.py pi-forge/ describe-forge/ conformance/
+      - name: AT coverage (seamount = AT-E*)
+        working-directory: seamount
+        run: python tools/at_coverage.py
+      # mypy --strict on forges deferred to v0.2 (CONFLICT-04 option b).
+      # See pi-forge/pyproject.toml and describe-forge/pyproject.toml
+      # [tool.mypy] for the deferral rationale; the strict gate is queued
+      # for v0.2 with a Known-limitation entry in seamount/CHANGELOG.md.
+
   forge-unit-tests:
     runs-on: macos-latest
     strategy:

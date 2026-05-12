@@ -22,3 +22,22 @@ describe-forge = "describe_forge.__main__:main"
 [tool.setuptools]
 py-modules = ["server", "envelope", "describe", "forge_identity"]
 packages = ["describe_forge"]
+
+# ---------------------------------------------------------------------------
+# CONFLICT-04 (Plan 04-01 Task 5): mypy --strict on forges deferred to v0.2.
+#
+# Phase 4 probe (2026-05-11) found 17 type errors in describe-forge under
+# `mypy --strict` (predominantly missing dict/list type-args in envelope.py
+# helpers and missing return annotations on Flask route handlers). This
+# exceeds Task 5's auto-fix budget (>3 errors per forge), triggering the
+# CONFLICT-04 fallback path: option (b) — defer mypy --strict on forges to
+# v0.2 with a Known-limitation entry in seamount/CHANGELOG.md (Plan 04-02
+# Task 5).
+#
+# Re-enable when the forge annotation work lands by uncommenting the
+# `strict = true` line below.
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+# strict = true  # v0.2 — see CONFLICT-04 note above
+ignore_missing_imports = true

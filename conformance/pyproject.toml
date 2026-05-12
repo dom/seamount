@@ -29,3 +29,11 @@ forge-conformance = "forge_conformance.__main__:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["forge_conformance*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "at_negative"]
+markers = [
+    "at_surface(name): mark test as exercising a specific AT-* threat-model surface",
+    "documents_only: marker for documents-only AT-* tests (no live runtime assertions)",
+    "integration: marker for tests that spawn subprocess fixtures or hit network",
+]

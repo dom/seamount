@@ -23,3 +23,27 @@ pi-forge = "pi_forge.__main__:main"
 [tool.setuptools]
 py-modules = ["server", "envelope", "pi", "forge_identity"]
 packages = ["pi_forge"]
+
+# ---------------------------------------------------------------------------
+# CONFLICT-04 (Plan 04-01 Task 5): mypy --strict on forges deferred to v0.2.
+#
+# Phase 4 probe (2026-05-11) found 20 type errors in pi-forge under
+# `mypy --strict` (predominantly missing dict/list type-args in envelope.py
+# helpers and missing return annotations on Flask route handlers). This
+# exceeds Task 5's auto-fix budget (>3 errors per forge), triggering the
+# CONFLICT-04 fallback path: option (b) — defer mypy --strict on forges to
+# v0.2 with a Known-limitation entry in seamount/CHANGELOG.md (Plan 04-02
+# Task 5).
+#
+# Current setting is intentionally NON-STRICT to keep CI green while the
+# annotation work is queued for v0.2. The probe diagnostics are recorded in
+# .planning/phases/04-hardening-conformance-and-v0-1-release/04-01-SUMMARY.md
+# under "Deviations / CONFLICT-04 disposition".
+#
+# Re-enable when the forge annotation work lands by uncommenting the
+# `strict = true` line below.
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+# strict = true  # v0.2 — see CONFLICT-04 note above
+ignore_missing_imports = true

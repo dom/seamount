@@ -70,8 +70,14 @@ def cmd_serve(args: argparse.Namespace) -> int:
     from server import app
 
     port = args.port or int(os.environ.get("FORGE_PORT", "5100"))
+    # FORGE_BIND_HOST defaults to 0.0.0.0 (production behavior). Set to
+    # 127.0.0.1 in test fixtures: werkzeug's address-display logic calls
+    # socket.gethostbyname(socket.gethostname()) when binding to 0.0.0.0,
+    # which hangs ~70s on macOS arm64 GitHub runners between Flask's
+    # "Debug mode: off" and "Running on http://..." log lines.
+    host = os.environ.get("FORGE_BIND_HOST", "0.0.0.0")
     print(f"PIFORGE_READY port={port}", flush=True)
-    app.run(host="0.0.0.0", port=port)
+    app.run(host=host, port=port)
     return 0
 
 

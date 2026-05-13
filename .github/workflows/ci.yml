@@ -122,14 +122,17 @@ jobs:
         # Single step: GitHub Actions reaps backgrounded processes at step
         # boundary. Spawning `serve &` in one step and the harness in the next
         # leaves the harness pointing at a dead port. Keep the forge alive for
-        # the lifetime of this step; trap-kill on exit.
+        # the lifetime of this step; trap-kill on exit. FORGE_BIND_HOST=127.0.0.1
+        # skips werkzeug's hostname-resolution display-addresses path, which
+        # otherwise costs ~70s per startup on macOS arm64 GH runners.
+        env:
+          FORGE_BIND_HOST: 127.0.0.1
         run: |
           MODULE=${{ matrix.forge == 'pi-forge' && 'pi_forge' || 'describe_forge' }}
           python -m "$MODULE" init --keyring-service seamount.ci-test
           python -m "$MODULE" serve --keyring-service seamount.ci-test --port 5100 &
           FORGE_PID=$!
           trap "kill $FORGE_PID 2>/dev/null || true" EXIT
-          # Poll /pubkey for readiness (up to 30s for cold macOS arm64 starts).
           for _ in $(seq 1 60); do
             if curl -sf http://127.0.0.1:5100/pubkey >/dev/null; then
               echo "forge ready (pid=$FORGE_PID)"

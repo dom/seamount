@@ -7,7 +7,6 @@ without depending on photophore's tests/ tree.
 from __future__ import annotations
 
 import os
-import shlex
 import socket
 import subprocess
 import sys
@@ -91,6 +90,11 @@ def conformance_forge(
     env[f"{meta['env_prefix']}_IDENTITY"] = meta["identity"]
     env["FORGE_NODE_ID"] = meta["identity"]
     env["FORGE_PORT"] = str(port)
+    # Bind to loopback only. Default 0.0.0.0 triggers werkzeug's
+    # `socket.gethostbyname(socket.gethostname())` in display_addresses,
+    # which hangs ~70s on macOS arm64 GH runners between "Debug mode: off"
+    # and "Running on http://...". Harness tests connect via 127.0.0.1.
+    env["FORGE_BIND_HOST"] = "127.0.0.1"
 
     init_result = subprocess.run(
         [
@@ -115,18 +119,11 @@ def conformance_forge(
             f"{role} init failed:\nstdout: {init_result.stdout}\nstderr: {init_result.stderr}"
         )
 
-    # Spawn the server via `/bin/sh -c "exec ..."`. Direct Popen from pytest
-    # hangs Flask startup on macOS GH runners between "Debug mode: off" and
-    # "Running on http://" — pytest's parent has signal-handler state that
-    # werkzeug inherits across fork+exec and deadlocks in `signal.signal()`
-    # during run_simple(). Interposing /bin/sh resets handlers to defaults
-    # before exec'ing python; `exec` replaces the shell so proc.pid is the
-    # forge. Matches the working `python -m ... &` pattern used by the
-    # seamount conformance matrix jobs.
+    # Route subprocess output to a logfile — an undrained PIPE buffer would
+    # fill up as Flask logs each request, blocking the forge on write().
     forge_log = forge_dir / f".forge-{uuid.uuid4().hex[:8]}.log"
-    forge_cmd = " ".join(
-        shlex.quote(part)
-        for part in [
+    proc = subprocess.Popen(
+        [
             str(venv_python),
             "-m",
             meta["module"],
@@ -135,10 +132,7 @@ def conformance_forge(
             test_ns,
             "--port",
             str(port),
-        ]
-    )
-    proc = subprocess.Popen(
-        ["/bin/sh", "-c", f"exec {forge_cmd}"],
+        ],
         cwd=str(forge_dir),
         env=env,
         stdout=forge_log.open("w"),

@@ -7,6 +7,7 @@ without depending on photophore's tests/ tree.
 from __future__ import annotations
 
 import os
+import shlex
 import socket
 import subprocess
 import sys
@@ -114,12 +115,18 @@ def conformance_forge(
             f"{role} init failed:\nstdout: {init_result.stdout}\nstderr: {init_result.stderr}"
         )
 
-    # Route subprocess output to a logfile rather than PIPE — on macOS arm64
-    # GH runners, an undrained PIPE buffer fills up as Flask logs per-request,
-    # blocking the forge on write() and stalling /pubkey handling.
+    # Spawn the server via `/bin/sh -c "exec ..."`. Direct Popen from pytest
+    # hangs Flask startup on macOS GH runners between "Debug mode: off" and
+    # "Running on http://" — pytest's parent has signal-handler state that
+    # werkzeug inherits across fork+exec and deadlocks in `signal.signal()`
+    # during run_simple(). Interposing /bin/sh resets handlers to defaults
+    # before exec'ing python; `exec` replaces the shell so proc.pid is the
+    # forge. Matches the working `python -m ... &` pattern used by the
+    # seamount conformance matrix jobs.
     forge_log = forge_dir / f".forge-{uuid.uuid4().hex[:8]}.log"
-    proc = subprocess.Popen(
-        [
+    forge_cmd = " ".join(
+        shlex.quote(part)
+        for part in [
             str(venv_python),
             "-m",
             meta["module"],
@@ -128,15 +135,16 @@ def conformance_forge(
             test_ns,
             "--port",
             str(port),
-        ],
+        ]
+    )
+    proc = subprocess.Popen(
+        ["/bin/sh", "-c", f"exec {forge_cmd}"],
         cwd=str(forge_dir),
         env=env,
         stdout=forge_log.open("w"),
         stderr=subprocess.STDOUT,
         stdin=subprocess.DEVNULL,
         text=True,
-        # Detach from pytest's process group — matches shell `&` backgrounding,
-        # which the seamount conformance matrix jobs use successfully.
         start_new_session=True,
     )
     url = f"http://127.0.0.1:{port}"

@@ -135,6 +135,9 @@ def conformance_forge(
         stderr=subprocess.STDOUT,
         stdin=subprocess.DEVNULL,
         text=True,
+        # Detach from pytest's process group — matches shell `&` backgrounding,
+        # which the seamount conformance matrix jobs use successfully.
+        start_new_session=True,
     )
     url = f"http://127.0.0.1:{port}"
     # 30s budget accommodates cold macOS arm64 GH-runner starts; locally

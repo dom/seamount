@@ -132,7 +132,9 @@ def conformance_forge(
         text=True,
     )
     url = f"http://127.0.0.1:{port}"
-    deadline = time.monotonic() + 12.0
+    # 30s budget accommodates cold macOS arm64 GH-runner starts; locally
+    # the forge is ready in <1s.
+    deadline = time.monotonic() + 30.0
     pubkey_hex: str | None = None
     while time.monotonic() < deadline:
         if proc.poll() is not None:

@@ -172,7 +172,9 @@ def test_harness_detects_invalid_receipt_signature() -> None:
     proc.start()
     try:
         url = f"http://127.0.0.1:{port}"
-        deadline = time.monotonic() + 8.0
+        # 30s budget accommodates cold macOS arm64 GH-runner starts; locally
+        # the in-process Flask app is ready in <0.5s.
+        deadline = time.monotonic() + 30.0
         ready = False
         while time.monotonic() < deadline:
             if not proc.is_alive():

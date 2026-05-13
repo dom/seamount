@@ -92,20 +92,40 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Unlock macOS Keychain
+        # GH macOS runners ship a locked login keychain by default. The forge
+        # /pubkey handler reads from keyring; first access blocks indefinitely
+        # on the unlock dialog (no UI on headless runners). Unlock the default
+        # keychain with the runner's documented empty/'' password.
+        run: |
+          security unlock-keychain -p "" "$HOME/Library/Keychains/login.keychain-db" || \
+          security unlock-keychain -p "" login.keychain || true
+          security set-keychain-settings -lut 7200 "$HOME/Library/Keychains/login.keychain-db" || true
       - name: Install thermocline + forge + forge_conformance
         run: |
           pip install -e thermocline/thermocline/python/
           pip install -e seamount/${{ matrix.forge }}/
           pip install -e seamount/conformance/
           pip install flask
-      - name: Init + serve ${{ matrix.forge }}
+      - name: Init + serve + run forge_conformance against ${{ matrix.forge }}
+        # Single step: GitHub Actions reaps backgrounded processes at step
+        # boundary. Spawning `serve &` in one step and the harness in the next
+        # leaves the harness pointing at a dead port. Keep the forge alive for
+        # the lifetime of this step; trap-kill on exit.
         run: |
           MODULE=${{ matrix.forge == 'pi-forge' && 'pi_forge' || 'describe_forge' }}
           python -m "$MODULE" init --keyring-service seamount.ci-test
           python -m "$MODULE" serve --keyring-service seamount.ci-test --port 5100 &
-          sleep 3
-      - name: Run forge_conformance against ${{ matrix.forge }}
-        run: |
+          FORGE_PID=$!
+          trap "kill $FORGE_PID 2>/dev/null || true" EXIT
+          # Poll /pubkey for readiness (up to 30s for cold macOS arm64 starts).
+          for _ in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:5100/pubkey >/dev/null; then
+              echo "forge ready (pid=$FORGE_PID)"
+              break
+            fi
+            sleep 0.5
+          done
           python -m forge_conformance \
             --target http://127.0.0.1:5100 \
             --role ${{ matrix.forge }} \
@@ -128,6 +148,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Unlock macOS Keychain
+        # Subprocess /pubkey handler blocks on Keychain unlock dialog without
+        # this step on headless GH macOS runners. See conformance job for full
+        # rationale.
+        run: |
+          security unlock-keychain -p "" "$HOME/Library/Keychains/login.keychain-db" || \
+          security unlock-keychain -p "" login.keychain || true
+          security set-keychain-settings -lut 7200 "$HOME/Library/Keychains/login.keychain-db" || true
       - name: Install thermocline + all forges + conformance
         run: |
           pip install -e thermocline/thermocline/python/

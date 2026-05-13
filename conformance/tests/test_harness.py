@@ -116,6 +116,12 @@ def _forged_receipt_app(port: int) -> None:
     sys.stdout = devnull
     sys.stderr = devnull
 
+    # Stub socket.getfqdn — werkzeug's HTTPServer.server_bind calls it on
+    # the bound host and reverse-DNS of 127.0.0.1 hangs ~35s on macOS arm64
+    # GH runners. server_name isn't used by this fake forge.
+    import socket as _socket
+    _socket.getfqdn = lambda name="": name or "localhost"
+
     from flask import Flask, jsonify, request  # local import — child process
 
     app = Flask(__name__)
@@ -183,9 +189,9 @@ def test_harness_detects_invalid_receipt_signature() -> None:
     proc.start()
     try:
         url = f"http://127.0.0.1:{port}"
-        # 30s budget accommodates cold macOS arm64 GH-runner starts; locally
+        # 60s budget accommodates cold macOS arm64 GH-runner starts; locally
         # the in-process Flask app is ready in <0.5s.
-        deadline = time.monotonic() + 30.0
+        deadline = time.monotonic() + 60.0
         ready = False
         while time.monotonic() < deadline:
             if not proc.is_alive():

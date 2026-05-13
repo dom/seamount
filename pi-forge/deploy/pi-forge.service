@@ -1,0 +1,81 @@
+# /etc/systemd/system/pi-forge.service
+#
+# Phase 5 (Plan 05-01) — Thermocline reference deployment at https://pi.dom.net.
+# Installed by deploy/install.sh § Section 6.
+#
+# Decision references:
+#   CONTEXT D-05 (hardened unit shape)
+#   CONTEXT D-07 (dbus-run-session + systemd-creds + libsecret unlock chain)
+#   RESEARCH Pattern 3 (per-service D-Bus session + inline keyring unlock)
+#
+# Man-page references (verified 2026-05-13):
+#   systemd.exec(5)       — Protect*, Restrict*, NoNewPrivileges, etc.
+#   systemd-creds(1)      — LoadCredentialEncrypted=
+#   dbus-run-session(1)   — wraps a child in an ephemeral D-Bus session
+#   gnome-keyring-daemon(1) — --unlock --components=secrets reads passphrase
+#                              from stdin and unlocks the SecretService backend
+#
+# CRITICAL — RESEARCH Pitfall 2: pi_forge/__main__.py has no CLI bind-host
+# flag. Bind host is controlled exclusively by FORGE_BIND_HOST env var (set
+# in /etc/pi-forge/pi-forge.env). Do NOT add a bind-host CLI flag here.
+
+[Unit]
+Description=pi-forge — Thermocline reference compute forge
+Documentation=https://github.com/dom/seamount/tree/v0.1.0/pi-forge
+After=network-online.target dbus.socket
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi-forge
+Group=pi-forge
+WorkingDirectory=/srv/thermocline-suite/seamount/pi-forge
+
+# Env contract loaded from a separate file so secrets/identity can rotate
+# without touching the unit (CONTEXT D-05).
+EnvironmentFile=/etc/pi-forge/pi-forge.env
+
+# systemd-creds decrypts /etc/credstore.encrypted/keyring-pass at service start
+# and exposes the plaintext at $CREDENTIALS_DIRECTORY/keyring-pass for the
+# child process namespace only. Encrypted at rest with the host key
+# (CONTEXT D-07; /dev/tpm* absent on this box so --with-key=host is the
+# operational floor — TPM-bound would be stronger and is a v0.2+ candidate).
+LoadCredentialEncrypted=keyring-pass:/etc/credstore.encrypted/keyring-pass
+
+# ExecStart wraps pi-forge in a per-service D-Bus session, unlocks
+# gnome-keyring with the passphrase from systemd-creds, and execs pi-forge.
+# The $$ escaping leaves ${CREDENTIALS_DIRECTORY} unresolved by systemd so
+# bash inside dbus-run-session expands it at runtime (systemd.exec(5)
+# "Specifiers and Environment Variables" — variable references must be $$
+# to be passed through literally).
+ExecStart=/usr/bin/dbus-run-session -- /bin/bash -c 'cat "$${CREDENTIALS_DIRECTORY}/keyring-pass" | /usr/bin/gnome-keyring-daemon --unlock --components=secrets >/dev/null && exec /srv/thermocline-suite/.venv/bin/python -m pi_forge serve --port 8002 --keyring-service seamount.piforge'
+
+Restart=on-failure
+RestartSec=5
+
+# --- Hardening (CONTEXT D-05) ---
+# pi-forge holds nothing after response (Seamount README §Envelope Flow):
+# no audit DB, no job history, no log of task contents. ReadWritePaths= is
+# empty by design.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=true
+LockPersonality=true
+SystemCallArchitectures=native
+ReadWritePaths=
+
+# RESEARCH Pitfall 7 / Assumption A3: MemoryDenyWriteExecute can break
+# PyNaCl's libsodium loader or other JIT-adjacent paths. Left commented
+# until empirically tested under deploy. Enable hardening flags one-at-a-time
+# (curl /pubkey after each) before promoting permanent.
+# MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target

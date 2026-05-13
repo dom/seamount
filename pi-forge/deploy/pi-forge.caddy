@@ -1,0 +1,56 @@
+# /etc/caddy/Caddyfile — Thermocline reference deployment at https://pi.dom.net
+#
+# Phase 5 (Plan 05-01) — CONTEXT D-04 mandates this be the COMPLETE Caddyfile
+# (NOT a conf.d snippet, NOT a drop-in). Single-site, single-block; the
+# `import conf.d/*.caddy` pattern can be introduced later when a second site
+# lands. Installed by deploy/install.sh § Section 6 at /etc/caddy/Caddyfile.
+#
+# Plecostomus stays on 0.0.0.0:8001 untouched (CONTEXT D-04 / D-02); Caddy
+# does not proxy example-cotenant. UFW allows 8001/tcp directly.
+#
+# References (verified 2026-05-13):
+#   - https://caddyserver.com/docs/caddyfile/directives/handle
+#   - https://caddyserver.com/docs/caddyfile/directives/reverse_proxy
+#   - https://caddyserver.com/docs/caddyfile/directives/request_body
+#
+# RESEARCH Pitfall 1: use `handle` (preserves path) NEVER `handle_path`
+#   (strips the matched prefix; would break Flask route matching since the
+#   forge registers /pubkey, /health, /task literally — see server.py).
+# RESEARCH Pitfall 8: `request_body { max_size }` is experimental in
+#   Caddy 2.10+; install.sh § Section 2 runs `apt-mark hold caddy` to pin
+#   against surprise upgrades. Revisit when v3.x lands.
+
+pi.dom.net {
+	encode zstd gzip
+
+	handle /pubkey {
+		reverse_proxy 127.0.0.1:8002
+	}
+
+	handle /health {
+		reverse_proxy 127.0.0.1:8002
+	}
+
+	handle /task {
+		# CONTEXT D-09: 16KB ceiling at the reverse-proxy edge as the v0.1
+		# backstop for AT-E2 (forge payload-size limit, deferred to v0.2
+		# per seamount/pi-forge/docs/install.md §6). Realistic task envelopes
+		# are well under 4KB; 16KB is ~4x headroom.
+		request_body {
+			max_size 16KB
+		}
+		reverse_proxy 127.0.0.1:8002
+	}
+
+	# Default-deny (CONTEXT D-04): anything other than the three documented
+	# endpoints returns 404 at the proxy edge. Defense against future endpoint
+	# additions that did not pass Caddy review.
+	handle {
+		respond "Not Found" 404
+	}
+
+	log {
+		output file /var/log/caddy/pi-forge.log
+		format json
+	}
+}

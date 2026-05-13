@@ -143,7 +143,14 @@ jobs:
             --output json
 
   forge-conformance-harness-tests:
-    runs-on: macos-latest
+    # macos-13 (x86_64 Intel) instead of macos-latest (arm64): diagnostic
+    # experiment. The harness-tests fixture spawns forges via
+    # `subprocess.Popen` (mirroring photophore Plan 03-03), which hangs on
+    # macos-latest arm64 between Flask's "Debug mode: off" and "Running on
+    # http://" — while shell-`&`-spawned forges on the same image (the
+    # `conformance` job above) work fine. If macos-13 is green, we have a
+    # deployment fix; if still red, the fixture needs a shell-spawn refactor.
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
         with:

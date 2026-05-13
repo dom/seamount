@@ -17,6 +17,10 @@ jobs:
         with:
           repository: dom/thermocline
           path: thermocline
+          # Sibling repo is private; default GITHUB_TOKEN is scoped to the
+          # running repo only. SUITE_REPOS_TOKEN is a fine-grained PAT with
+          # Contents: Read on dom/{thermocline,photophore,seamount}.
+          token: ${{ secrets.SUITE_REPOS_TOKEN }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -45,6 +49,10 @@ jobs:
         with:
           repository: dom/thermocline
           path: thermocline
+          # Sibling repo is private; default GITHUB_TOKEN is scoped to the
+          # running repo only. SUITE_REPOS_TOKEN is a fine-grained PAT with
+          # Contents: Read on dom/{thermocline,photophore,seamount}.
+          token: ${{ secrets.SUITE_REPOS_TOKEN }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -70,6 +78,10 @@ jobs:
         with:
           repository: dom/thermocline
           path: thermocline
+          # Sibling repo is private; default GITHUB_TOKEN is scoped to the
+          # running repo only. SUITE_REPOS_TOKEN is a fine-grained PAT with
+          # Contents: Read on dom/{thermocline,photophore,seamount}.
+          token: ${{ secrets.SUITE_REPOS_TOKEN }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -102,6 +114,10 @@ jobs:
         with:
           repository: dom/thermocline
           path: thermocline
+          # Sibling repo is private; default GITHUB_TOKEN is scoped to the
+          # running repo only. SUITE_REPOS_TOKEN is a fine-grained PAT with
+          # Contents: Read on dom/{thermocline,photophore,seamount}.
+          token: ${{ secrets.SUITE_REPOS_TOKEN }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"

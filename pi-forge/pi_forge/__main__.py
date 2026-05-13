@@ -71,11 +71,16 @@ def cmd_serve(args: argparse.Namespace) -> int:
 
     port = args.port or int(os.environ.get("FORGE_PORT", "5100"))
     # FORGE_BIND_HOST defaults to 0.0.0.0 (production behavior). Set to
-    # 127.0.0.1 in test fixtures: werkzeug's address-display logic calls
-    # socket.gethostbyname(socket.gethostname()) when binding to 0.0.0.0,
-    # which hangs ~70s on macOS arm64 GitHub runners between Flask's
-    # "Debug mode: off" and "Running on http://..." log lines.
+    # 127.0.0.1 in test fixtures.
     host = os.environ.get("FORGE_BIND_HOST", "0.0.0.0")
+    # Skip slow DNS during Flask startup on macOS arm64 GH runners. Two
+    # werkzeug paths call into the resolver: display_addresses does
+    # gethostbyname(gethostname()) when host is 0.0.0.0 (~35s on the
+    # runner), and HTTPServer.server_bind always calls getfqdn(host)
+    # (~35s for reverse-DNS of 127.0.0.1). The forge does not use the
+    # resolved server_name anywhere, so stubbing getfqdn is safe.
+    import socket as _socket
+    _socket.getfqdn = lambda name="": name or "localhost"
     print(f"PIFORGE_READY port={port}", flush=True)
     app.run(host=host, port=port)
     return 0

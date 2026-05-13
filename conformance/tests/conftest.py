@@ -142,9 +142,9 @@ def conformance_forge(
         start_new_session=True,
     )
     url = f"http://127.0.0.1:{port}"
-    # 30s budget accommodates cold macOS arm64 GH-runner starts; locally
+    # 60s budget accommodates cold macOS arm64 GH-runner starts; locally
     # the forge is ready in <1s.
-    deadline = time.monotonic() + 30.0
+    deadline = time.monotonic() + 60.0
     pubkey_hex: str | None = None
     def _read_forge_log() -> str:
         try:
@@ -180,7 +180,7 @@ def conformance_forge(
         except Exception:  # noqa: BLE001
             pass
         raise RuntimeError(
-            f"{role} did not become ready within 30s on port {port}\n"
+            f"{role} did not become ready within 60s on port {port}\n"
             f"output: {_read_forge_log()}"
         )
     try:

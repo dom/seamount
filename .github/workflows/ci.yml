@@ -92,15 +92,26 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Unlock macOS Keychain
-        # GH macOS runners ship a locked login keychain by default. The forge
-        # /pubkey handler reads from keyring; first access blocks indefinitely
-        # on the unlock dialog (no UI on headless runners). Unlock the default
-        # keychain with the runner's documented empty/'' password.
+      - name: Provision CI keychain
+        # The login.keychain on headless macOS runners enforces ACLs that
+        # block cross-process keyring reads, even after unlock — the /pubkey
+        # handler in a forge subprocess hangs on an "allow access" dialog
+        # that no human can dismiss. Create a fresh custom keychain with a
+        # known password, set it as default, unlock it, and call
+        # set-key-partition-list to allow tool-based access without prompts.
+        # This is the standard CI pattern for macOS keychain access.
         run: |
-          security unlock-keychain -p "" "$HOME/Library/Keychains/login.keychain-db" || \
-          security unlock-keychain -p "" login.keychain || true
-          security set-keychain-settings -lut 7200 "$HOME/Library/Keychains/login.keychain-db" || true
+          KC_PATH="${RUNNER_TEMP:-$HOME}/ci.keychain-db"
+          KC_PASS="cipass"
+          security create-keychain -p "$KC_PASS" "$KC_PATH"
+          security set-keychain-settings -lut 7200 "$KC_PATH"
+          security unlock-keychain -p "$KC_PASS" "$KC_PATH"
+          # Make the new keychain the default + keep login.keychain on the
+          # search list (some tooling expects it).
+          security list-keychains -d user -s "$KC_PATH" "$HOME/Library/Keychains/login.keychain-db"
+          security default-keychain -s "$KC_PATH"
+          # Allow tool-based access without prompts.
+          security set-key-partition-list -S apple-tool:,apple:,unsigned: -s -k "$KC_PASS" "$KC_PATH" 2>/dev/null || true
       - name: Install thermocline + forge + forge_conformance
         run: |
           pip install -e thermocline/thermocline/python/

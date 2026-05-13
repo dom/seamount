@@ -4,7 +4,7 @@ All notable changes to Seamount are documented here. The format is a lite
 variant of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); semantic
 versioning per [SemVer](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] - 2026-05-12
+## [0.1.0] - 2026-05-13
 
 ### Added
 

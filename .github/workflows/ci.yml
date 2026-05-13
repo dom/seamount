@@ -15,7 +15,7 @@ jobs:
           path: seamount
       - uses: actions/checkout@v4
         with:
-          repository: graywhale/thermocline
+          repository: dom/thermocline
           path: thermocline
       - uses: actions/setup-python@v5
         with:
@@ -43,7 +43,7 @@ jobs:
           path: seamount
       - uses: actions/checkout@v4
         with:
-          repository: graywhale/thermocline
+          repository: dom/thermocline
           path: thermocline
       - uses: actions/setup-python@v5
         with:
@@ -68,7 +68,7 @@ jobs:
           path: seamount
       - uses: actions/checkout@v4
         with:
-          repository: graywhale/thermocline
+          repository: dom/thermocline
           path: thermocline
       - uses: actions/setup-python@v5
         with:
@@ -100,7 +100,7 @@ jobs:
           path: seamount
       - uses: actions/checkout@v4
         with:
-          repository: graywhale/thermocline
+          repository: dom/thermocline
           path: thermocline
       - uses: actions/setup-python@v5
         with:

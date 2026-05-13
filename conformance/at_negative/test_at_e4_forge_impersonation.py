@@ -12,13 +12,32 @@ at_negative wrapper covers the surface for the coverage gate.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
 
-_FIXTURE = Path("/Users/dom/Projects/dom/thermocline/thermocline/conformance/invalid/AT-E4-forge-impersonation.json")
-_PHOTOPHORE_TEST = Path(
-    "/Users/dom/Projects/dom/photophore/python/tests/integration/test_e2e_forged_receipt.py"
+_SUITE_ROOT = Path(
+    os.environ.get(
+        "THERMOCLINE_SUITE_ROOT",
+        str(Path.home() / "Projects" / "dom"),
+    )
+)
+_FIXTURE = (
+    _SUITE_ROOT
+    / "thermocline"
+    / "thermocline"
+    / "conformance"
+    / "invalid"
+    / "AT-E4-forge-impersonation.json"
+)
+_PHOTOPHORE_TEST = (
+    _SUITE_ROOT
+    / "photophore"
+    / "python"
+    / "tests"
+    / "integration"
+    / "test_e2e_forged_receipt.py"
 )
 
 

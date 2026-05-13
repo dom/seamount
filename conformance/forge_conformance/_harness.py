@@ -26,9 +26,13 @@ from thermocline.schemes import KeyScheme
 
 from ._fixtures import load_fixtures
 
-_SCHEMA_ROOT_DEFAULT = Path(
-    "/Users/dom/Projects/dom/thermocline/thermocline/schema"
+_SUITE_ROOT = Path(
+    os.environ.get(
+        "THERMOCLINE_SUITE_ROOT",
+        str(Path.home() / "Projects" / "dom"),
+    )
 )
+_SCHEMA_ROOT_DEFAULT = _SUITE_ROOT / "thermocline" / "thermocline" / "schema"
 
 
 def _load_schema(name: str, root: Path) -> dict[str, Any]:

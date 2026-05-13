@@ -2,12 +2,19 @@
 # AT-SURFACE: AT-E3
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
 
 
-_SEAMOUNT_ROOT = Path("/Users/dom/Projects/dom/seamount")
+_SUITE_ROOT = Path(
+    os.environ.get(
+        "THERMOCLINE_SUITE_ROOT",
+        str(Path.home() / "Projects" / "dom"),
+    )
+)
+_SEAMOUNT_ROOT = _SUITE_ROOT / "seamount"
 
 
 @pytest.mark.at_surface("AT-E3")

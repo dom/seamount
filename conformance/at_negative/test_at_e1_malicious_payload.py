@@ -11,11 +11,25 @@ the contract from the AT-E1 surface perspective.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
 
-_FIXTURE = Path("/Users/dom/Projects/dom/thermocline/thermocline/conformance/invalid/AT-E1-malicious-payload.json")
+_SUITE_ROOT = Path(
+    os.environ.get(
+        "THERMOCLINE_SUITE_ROOT",
+        str(Path.home() / "Projects" / "dom"),
+    )
+)
+_FIXTURE = (
+    _SUITE_ROOT
+    / "thermocline"
+    / "thermocline"
+    / "conformance"
+    / "invalid"
+    / "AT-E1-malicious-payload.json"
+)
 
 
 @pytest.mark.at_surface("AT-E1")

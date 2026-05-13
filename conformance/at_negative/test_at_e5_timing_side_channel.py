@@ -9,12 +9,19 @@ that could leak fine-grained signal.
 from __future__ import annotations
 
 import ast
+import os
 from pathlib import Path
 
 import pytest
 
 
-_SEAMOUNT_ROOT = Path("/Users/dom/Projects/dom/seamount")
+_SUITE_ROOT = Path(
+    os.environ.get(
+        "THERMOCLINE_SUITE_ROOT",
+        str(Path.home() / "Projects" / "dom"),
+    )
+)
+_SEAMOUNT_ROOT = _SUITE_ROOT / "seamount"
 _FORBIDDEN_TIMERS = {
     "perf_counter_ns",
     "monotonic_ns",

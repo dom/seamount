@@ -8,12 +8,26 @@ parameter; documented as v0.2 known limitation.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
 
 
-_FIXTURE = Path("/Users/dom/Projects/dom/thermocline/thermocline/conformance/invalid/AT-E2-resource-exhaustion.json")
+_SUITE_ROOT = Path(
+    os.environ.get(
+        "THERMOCLINE_SUITE_ROOT",
+        str(Path.home() / "Projects" / "dom"),
+    )
+)
+_FIXTURE = (
+    _SUITE_ROOT
+    / "thermocline"
+    / "thermocline"
+    / "conformance"
+    / "invalid"
+    / "AT-E2-resource-exhaustion.json"
+)
 
 
 @pytest.mark.at_surface("AT-E2")

@@ -2,13 +2,20 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any, Iterator
 
 import yaml
 
-_CONFORMANCE_ROOT_DEFAULT = Path(
-    "/Users/dom/Projects/dom/thermocline/thermocline/conformance"
+_SUITE_ROOT = Path(
+    os.environ.get(
+        "THERMOCLINE_SUITE_ROOT",
+        str(Path.home() / "Projects" / "dom"),
+    )
+)
+_CONFORMANCE_ROOT_DEFAULT = (
+    _SUITE_ROOT / "thermocline" / "thermocline" / "conformance"
 )
 
 

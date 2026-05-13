@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import socket
 import subprocess
+import sys
 import time
 import uuid
 from pathlib import Path
@@ -19,7 +20,13 @@ import keyring
 import pytest
 
 
-_SEAMOUNT_ROOT = Path("/Users/dom/Projects/dom/seamount")
+_SUITE_ROOT = Path(
+    os.environ.get(
+        "THERMOCLINE_SUITE_ROOT",
+        str(Path.home() / "Projects" / "dom"),
+    )
+)
+_SEAMOUNT_ROOT = _SUITE_ROOT / "seamount"
 _FORGE_PATHS: dict[str, dict[str, str]] = {
     "pi-forge": {
         "dir": str(_SEAMOUNT_ROOT / "pi-forge"),
@@ -70,11 +77,14 @@ def conformance_forge(
     test_ns = f"{meta['namespace_prefix']}.test-{uuid.uuid4().hex[:8]}"
     port = _free_port()
     forge_dir = Path(meta["dir"])
+    # Prefer per-forge .venv (local dev convention); fall back to current
+    # interpreter for CI environments that install forges into the runner's
+    # site-packages.
     venv_python = forge_dir / ".venv" / "bin" / "python3"
     if not venv_python.exists():
         venv_python = forge_dir / ".venv" / "bin" / "python"
     if not venv_python.exists():
-        raise RuntimeError(f"{role}: no .venv python at {venv_python}")
+        venv_python = Path(sys.executable)
     env = {**os.environ}
     env[f"{meta['env_prefix']}_KEYRING_SERVICE"] = test_ns
     env[f"{meta['env_prefix']}_IDENTITY"] = meta["identity"]

@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+# Cross-repo path resolution: tests + harness derive sibling-repo paths from
+# THERMOCLINE_SUITE_ROOT. ${{ github.workspace }} is the directory that contains
+# all sibling checkouts (seamount/, thermocline/, optionally photophore/).
+env:
+  THERMOCLINE_SUITE_ROOT: ${{ github.workspace }}
+
 jobs:
   lint-and-coverage:
     runs-on: ubuntu-latest
@@ -60,6 +66,7 @@ jobs:
         run: |
           pip install -e thermocline/thermocline/python/
           pip install -e seamount/${{ matrix.forge }}/
+          pip install pytest
       - name: Pytest ${{ matrix.forge }}
         working-directory: seamount/${{ matrix.forge }}
         run: pytest tests/ -q

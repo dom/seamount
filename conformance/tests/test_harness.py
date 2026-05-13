@@ -105,6 +105,17 @@ def test_harness_runs_against_describe_forge(
 
 def _forged_receipt_app(port: int) -> None:
     """In-process Flask forge that returns receipt_signature.sig = '00'*64."""
+    import os
+    import sys
+
+    # Redirect child stdout/stderr to /dev/null so Flask's per-request logging
+    # cannot fill pytest's capture buffer (which on macOS arm64 GH runners
+    # backs into a pipe with a small buffer; once full, Flask blocks on write
+    # and stops handling /pubkey).
+    devnull = open(os.devnull, "w")
+    sys.stdout = devnull
+    sys.stderr = devnull
+
     from flask import Flask, jsonify, request  # local import — child process
 
     app = Flask(__name__)

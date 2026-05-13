@@ -114,6 +114,10 @@ def conformance_forge(
             f"{role} init failed:\nstdout: {init_result.stdout}\nstderr: {init_result.stderr}"
         )
 
+    # Route subprocess output to a logfile rather than PIPE — on macOS arm64
+    # GH runners, an undrained PIPE buffer fills up as Flask logs per-request,
+    # blocking the forge on write() and stalling /pubkey handling.
+    forge_log = forge_dir / f".forge-{uuid.uuid4().hex[:8]}.log"
     proc = subprocess.Popen(
         [
             str(venv_python),
@@ -127,8 +131,9 @@ def conformance_forge(
         ],
         cwd=str(forge_dir),
         env=env,
-        stdout=subprocess.PIPE,
+        stdout=forge_log.open("w"),
         stderr=subprocess.STDOUT,
+        stdin=subprocess.DEVNULL,
         text=True,
     )
     url = f"http://127.0.0.1:{port}"
@@ -136,15 +141,21 @@ def conformance_forge(
     # the forge is ready in <1s.
     deadline = time.monotonic() + 30.0
     pubkey_hex: str | None = None
+    def _read_forge_log() -> str:
+        try:
+            return forge_log.read_text()
+        except Exception:  # noqa: BLE001
+            return "<no log captured>"
+
     while time.monotonic() < deadline:
         if proc.poll() is not None:
-            out, _ = proc.communicate()
             try:
                 keyring.delete_password(test_ns, meta["identity"])
             except Exception:  # noqa: BLE001
                 pass
             raise RuntimeError(
-                f"{role} died during startup; rc={proc.returncode}; output:\n{out}"
+                f"{role} died during startup; rc={proc.returncode}; output:\n"
+                f"{_read_forge_log()}"
             )
         try:
             resp = httpx.get(f"{url}/pubkey", timeout=1.0)
@@ -163,7 +174,10 @@ def conformance_forge(
             keyring.delete_password(test_ns, meta["identity"])
         except Exception:  # noqa: BLE001
             pass
-        raise RuntimeError(f"{role} did not become ready within 12s on port {port}")
+        raise RuntimeError(
+            f"{role} did not become ready within 30s on port {port}\n"
+            f"output: {_read_forge_log()}"
+        )
     try:
         yield ConformanceForgeHandle(
             url=url,
@@ -182,6 +196,10 @@ def conformance_forge(
                 proc.wait(timeout=2)
             except subprocess.TimeoutExpired:
                 pass
+        try:
+            forge_log.unlink(missing_ok=True)
+        except Exception:  # noqa: BLE001
+            pass
         try:
             keyring.delete_password(test_ns, meta["identity"])
         except Exception:  # noqa: BLE001

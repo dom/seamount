@@ -23,6 +23,46 @@ If your client can talk to pi-forge, it can talk to any Thermocline forge.
 
 ---
 
+## Live Reference Deployment
+
+A pre-public-announcement reference instance is running at
+**https://pi.dom.net** while the suite iterates. Once `dom/thermocline`,
+`dom/photophore`, and `dom/seamount` go public this section becomes the
+suite's standing TOFU notary for the deployed brine pubkey.
+
+| Field | Value |
+|---|---|
+| URL | `https://pi.dom.net` |
+| Endpoints | `GET /pubkey`, `GET /health`, `POST /task` |
+| Identity | `pi-forge` |
+| Key scheme | `brine` (ed25519) |
+| Public key (hex) | `a45dc8374bb2db966d08fd45786292fe65bcac38e4dea09d2ef11ce879f61ee3` |
+| BLAKE3 fingerprint | `blake3:f187ea52e306d9c715b0ce9dac0925e8dc92d6cab7c47e2256ed3a67fcd86cf7` |
+| First deployed | 2026-05-14 |
+| Deploy artifacts | [`deploy/`](./deploy/) (see [`deploy/README.md`](./deploy/README.md)) |
+
+Verify yourself, end-to-end, from a clean machine:
+
+```bash
+# Confirm the live deployment's pubkey matches this README.
+curl -s https://pi.dom.net/pubkey \
+  | jq -r .pubkey \
+  | xxd -r -p \
+  | b3sum   # python alternative: python3 -c 'import sys,blake3; print(blake3.blake3(bytes.fromhex(sys.argv[1])).hexdigest())' "$(curl -s https://pi.dom.net/pubkey | jq -r .pubkey)"
+# expected: f187ea52e306d9c715b0ce9dac0925e8dc92d6cab7c47e2256ed3a67fcd86cf7
+
+# Verify a signed task result against the published pubkey via thermocline-py.
+curl -sX POST https://pi.dom.net/task \
+  -H 'content-type: application/json' \
+  --data @examples/task-100-digits.json \
+  | jq .
+```
+
+Re-deployments (key rotation) append a row to a `### Previous fingerprints`
+table below; old fingerprints are never removed (append-only TOFU history).
+
+---
+
 ## Task Contract
 
 **Accepted task type:** `data.compute`

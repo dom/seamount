@@ -9,3 +9,8 @@ build/
 dist/
 .coverage
 .mypy_cache/
+
+# Internal workspace (kept locally, not for public repo)
+.planning/
+memory/
+local tool workspace

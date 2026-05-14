@@ -41,7 +41,12 @@ PI_FORGE_PORT="8002"
 KEYRING_SERVICE="seamount.piforge"
 CRED_NAME="keyring-pass"
 CRED_ENC_PATH="/etc/credstore.encrypted/${CRED_NAME}"
-SUITE_TAG="v0.1.0"
+# Pre-public iteration phase (Phase 5): pin to main rather than v0.1.0
+# because v0.1.0's pi_forge/__main__.py hardcodes app.run(host="0.0.0.0")
+# — the FORGE_BIND_HOST env-var support was added in post-v0.1.0 CI-followup
+# commits. CONTEXT D-01's tag-pinning intent is deferred until a v0.1.1
+# cut that includes the bind-host fix.
+SUITE_TAG="main"
 
 DRY_RUN=0
 for arg in "$@"; do
@@ -354,6 +359,10 @@ if [[ ! -f /var/log/caddy/pi-forge.log ]]; then
 fi
 
 maybe systemctl daemon-reload
+
+# Try-restart so unit-file changes from a re-run of §6 take effect on the
+# running service (no-op if pi-forge is not yet running).
+maybe systemctl try-restart pi-forge
 
 # ---------------------------------------------------------------------------
 # Section 7 — UFW atomic enable cycle (RESEARCH Pattern 4 / Pitfall 3)

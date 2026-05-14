@@ -69,7 +69,18 @@ RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 RestrictNamespaces=true
 LockPersonality=true
 SystemCallArchitectures=native
-ReadWritePaths=
+
+# gnome-keyring-daemon needs writable paths under pi-forge's HOME for its
+# control socket (.cache/keyring-<rand>/control) and keyring storage
+# (.local/share/keyrings/). Discovered empirically during the first deploy
+# (2026-05-13): ProtectSystem=strict + ReadWritePaths= empty caused
+# gnome-keyring-daemon to fail "couldn't bind to control socket: No such
+# file or directory", which made org.freedesktop.secrets activation time
+# out after 120s, which made every /pubkey request return 503
+# FORGE_NOT_INITIALIZED. CONTEXT D-05's "pi-forge holds nothing after
+# response" still applies to the forge code itself; these two paths are
+# for the libsecret daemon side of CONTEXT D-07.
+ReadWritePaths=/srv/thermocline-suite/.cache /srv/thermocline-suite/.local
 
 # RESEARCH Pitfall 7 / Assumption A3: MemoryDenyWriteExecute can break
 # PyNaCl's libsodium loader or other JIT-adjacent paths. Left commented

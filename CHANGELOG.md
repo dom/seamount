@@ -30,6 +30,18 @@ versioning per [SemVer](https://semver.org/spec/v2.0.0.html).
 - **Suite-wide CONF-01..08** — Seamount contributes its slice of the
   suite-wide conformance requirements (FORGE-* surface + AT-E* negative tests).
 
+### Spec dependencies
+
+- Requires **`thermocline-py` 0.3.1** for the SP-3.3-01..03 envelope-signature
+  invariants — see `thermocline/README.md` §"Identity Provider Interface"
+  §"Dispatch Signatures" + §"Receipt Signatures" and
+  `thermocline/CHANGELOG.md` §[0.3.1]. Both reference forges sign receipts
+  with the `receipt_signature.sig=""` (empty string, not removed)
+  canonicalization shape and emit the `sig` field (verifiers MAY accept
+  either `sig` or `bytes_hex` for compatibility with pre-0.3.1 drafts).
+  Co-discovered with the dispatch coordinator during Phase 3 integration;
+  promoted from coordinator-internal to spec-level via CONFLICT-02 in Phase 4.
+
 ### Deferred to subsequent milestones
 
 - Job envelopes + per-step forge invocation (Seamount spec v0.2)

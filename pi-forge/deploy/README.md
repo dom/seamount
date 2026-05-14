@@ -21,6 +21,22 @@ Source decisions: `thermocline/.planning/phases/05-deploy-pi-forge-as-public-ref
 4. **A clean SSH session** that you intend to keep open until UFW activates
    (Section 7 enables the firewall; an orphaned session sees the new rules
    immediately).
+5. **GitHub deploy keys staged** (only while `dom/thermocline` and
+   `dom/seamount` are private repos; this prereq becomes a no-op once they
+   are public). Generate one ed25519 keypair per repo on the box, register
+   each public key as a **read-only** deploy key on its respective repo,
+   and place the private keys at:
+   - `/etc/pi-forge-deploy-key-thermocline` (root-owned `0600`)
+   - `/etc/pi-forge-deploy-key-seamount` (root-owned `0600`)
+
+   GitHub policy refuses the same pubkey as a deploy key on multiple repos;
+   two keypairs are required. `install.sh § Section 4a` reads from these
+   paths (override with `DEPLOY_KEY_{THERMOCLINE,SEAMOUNT}` env vars),
+   stages them under `/srv/thermocline-suite/.ssh/` for the `pi-forge` user,
+   and configures git URL rewriting so the existing HTTPS clone URLs route
+   over SSH via per-repo host aliases. If both keys are absent the section
+   no-ops (public-repo path). If exactly one is present, install.sh refuses
+   with exit 2 to avoid asymmetric auth.
 
 ## What this deploys
 

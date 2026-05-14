@@ -162,6 +162,84 @@ echo "==> Section 4: git clones (thermocline + seamount @ ${SUITE_TAG}) + venv"
 maybe mkdir -p "${INSTALL_ROOT}"
 maybe chown -R "${PI_FORGE_USER}:${PI_FORGE_GROUP}" "${INSTALL_ROOT}"
 
+# ----- Section 4a: GitHub deploy-key staging (private-repo support) -----
+#
+# While dom/thermocline and dom/seamount are private (pre-public-announcement),
+# pi-forge must authenticate to GitHub to clone them. Operator stages two
+# read-only deploy keys at the paths below BEFORE running install.sh:
+#   DEPLOY_KEY_THERMOCLINE (default /etc/pi-forge-deploy-key-thermocline)
+#   DEPLOY_KEY_SEAMOUNT    (default /etc/pi-forge-deploy-key-seamount)
+# Each key is registered as a read-only deploy key on its respective repo
+# (GitHub policy: same pubkey cannot be a deploy key on multiple repos).
+#
+# Once the repos go public, leave the keys absent: this section becomes a
+# no-op and the existing HTTPS clones below work anonymously without changes.
+DEPLOY_KEY_THERMOCLINE="${DEPLOY_KEY_THERMOCLINE:-/etc/pi-forge-deploy-key-thermocline}"
+DEPLOY_KEY_SEAMOUNT="${DEPLOY_KEY_SEAMOUNT:-/etc/pi-forge-deploy-key-seamount}"
+
+DK_T_EXISTS=0; DK_S_EXISTS=0
+[[ -f "${DEPLOY_KEY_THERMOCLINE}" ]] && DK_T_EXISTS=1
+[[ -f "${DEPLOY_KEY_SEAMOUNT}" ]]    && DK_S_EXISTS=1
+
+if [[ "${DK_T_EXISTS}" = "1" && "${DK_S_EXISTS}" = "1" ]]; then
+	echo "    staging GitHub deploy keys for pi-forge (private-repo mode)"
+	SSH_DIR="${INSTALL_ROOT}/.ssh"
+	maybe install -d -m 0700 -o "${PI_FORGE_USER}" -g "${PI_FORGE_GROUP}" "${SSH_DIR}"
+	maybe install -m 0600 -o "${PI_FORGE_USER}" -g "${PI_FORGE_GROUP}" \
+		"${DEPLOY_KEY_THERMOCLINE}" "${SSH_DIR}/deploy-key-thermocline"
+	maybe install -m 0600 -o "${PI_FORGE_USER}" -g "${PI_FORGE_GROUP}" \
+		"${DEPLOY_KEY_SEAMOUNT}"    "${SSH_DIR}/deploy-key-seamount"
+
+	# Per-repo SSH host aliases so each clone picks the right key.
+	TMP_SSH_CFG="$(mktemp)"
+	cat > "${TMP_SSH_CFG}" <<SSHCFG
+Host github-thermocline
+    HostName github.com
+    User git
+    IdentityFile ${SSH_DIR}/deploy-key-thermocline
+    IdentitiesOnly yes
+
+Host github-seamount
+    HostName github.com
+    User git
+    IdentityFile ${SSH_DIR}/deploy-key-seamount
+    IdentitiesOnly yes
+SSHCFG
+	maybe install -m 0600 -o "${PI_FORGE_USER}" -g "${PI_FORGE_GROUP}" \
+		"${TMP_SSH_CFG}" "${SSH_DIR}/config"
+	rm -f "${TMP_SSH_CFG}"
+
+	# Trust github.com (real IP scan, NOT a hardcoded fingerprint).
+	if ! grep -q '^github.com ' "${SSH_DIR}/known_hosts" 2>/dev/null; then
+		TMP_KH="$(mktemp)"
+		ssh-keyscan -t rsa,ed25519 github.com > "${TMP_KH}" 2>/dev/null || true
+		maybe install -m 0644 -o "${PI_FORGE_USER}" -g "${PI_FORGE_GROUP}" \
+			"${TMP_KH}" "${SSH_DIR}/known_hosts"
+		rm -f "${TMP_KH}"
+	fi
+
+	# Git URL rewrite so the existing HTTPS clone lines (unchanged below)
+	# transparently route through the per-repo SSH aliases.
+	TMP_GIT_CFG="$(mktemp)"
+	cat > "${TMP_GIT_CFG}" <<GITCFG
+[url "git@github-thermocline:${GITHUB_OWNER}/thermocline.git"]
+    insteadOf = https://github.com/${GITHUB_OWNER}/thermocline.git
+[url "git@github-seamount:${GITHUB_OWNER}/seamount.git"]
+    insteadOf = https://github.com/${GITHUB_OWNER}/seamount.git
+GITCFG
+	maybe install -m 0644 -o "${PI_FORGE_USER}" -g "${PI_FORGE_GROUP}" \
+		"${TMP_GIT_CFG}" "${INSTALL_ROOT}/.gitconfig"
+	rm -f "${TMP_GIT_CFG}"
+
+elif [[ "${DK_T_EXISTS}" = "0" && "${DK_S_EXISTS}" = "0" ]]; then
+	echo "    no deploy keys present — assuming public repos for clones"
+else
+	echo "ERROR: exactly one deploy key exists; need both or neither." >&2
+	echo "  thermocline: ${DEPLOY_KEY_THERMOCLINE} (exists: ${DK_T_EXISTS})" >&2
+	echo "  seamount:    ${DEPLOY_KEY_SEAMOUNT} (exists: ${DK_S_EXISTS})" >&2
+	exit 2
+fi
+
 # Clone (or update) thermocline.
 if [[ ! -d "${INSTALL_ROOT}/thermocline/.git" ]]; then
 	as_pi_forge git clone --branch "${SUITE_TAG}" \

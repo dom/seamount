@@ -374,6 +374,19 @@ maybe systemctl daemon-reload
 # running service (no-op if pi-forge is not yet running).
 maybe systemctl try-restart pi-forge
 
+# Caddy was started by §2's apt postinst with the default /etc/caddy/Caddyfile
+# (the cloudsmith caddy package starts the service on install). §6 just
+# overwrote that file with pi-forge.caddy. §8's `systemctl enable --now caddy`
+# is a no-op for an already-running unit, so without this block the new
+# Caddyfile sits on disk until a manual restart. Validate before reloading
+# (reload preserves the old config on failure, but we want a loud error here);
+# guard on is-active so re-runs and brand-new boxes (where caddy starts in §8
+# instead) both behave correctly.
+if systemctl is-active --quiet caddy; then
+	maybe caddy validate --config /etc/caddy/Caddyfile
+	maybe systemctl reload caddy
+fi
+
 # ---------------------------------------------------------------------------
 # Section 7 — UFW atomic enable cycle (RESEARCH Pattern 4 / Pitfall 3)
 #

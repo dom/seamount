@@ -1,4 +1,4 @@
-"""Tests for the GET /pubkey endpoint (CONTEXT D-01 bootstrap)."""
+"""Tests for the GET /pubkey endpoint."""
 from __future__ import annotations
 
 import json

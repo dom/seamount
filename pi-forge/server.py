@@ -40,9 +40,9 @@ from forge_identity import (
 app = Flask(__name__)
 
 FORGE_NODE_ID = os.environ.get("FORGE_NODE_ID", "pi-forge-local")
-# CONTEXT D-01: default flipped from "none" -> "brine". FORGE_KEY_SCHEME=none
-# is still supported for dev/regression replay (envelope.py's _sign_receipt
-# leaves sig=None in that mode).
+# Production default is `brine` (ed25519 signing via the platform keystore).
+# `FORGE_KEY_SCHEME=none` is still supported for dev / regression replay
+# (envelope.py's _sign_receipt leaves sig=None in that mode).
 FORGE_KEY_SCHEME = os.environ.get("FORGE_KEY_SCHEME", "brine")
 FORGE_PORT = int(os.environ.get("FORGE_PORT", "5100"))
 MAX_DIGITS = 999

@@ -1,6 +1,6 @@
 """Templated description generator for tier-1 shadows.
 
-CONTEXT D-02: The string template is NORMATIVE — any deviation breaks FORGE-03.
+The string template is NORMATIVE — any deviation breaks FORGE-03.
 
     "This forge received a shadow of type '<content_type>' with relevance <relevance>."
 
@@ -46,7 +46,7 @@ def count_ignored_inline_blocks(context: list[dict[str, Any]]) -> int:
 
 
 def describe_one_shadow(shadow: dict[str, Any]) -> dict[str, Any]:
-    """Return one ShadowDescription per CONTEXT D-02.
+    """Return one ShadowDescription per the normative template.
 
     The output dict contains:
         shadow_id      — the shadow's id (echo)

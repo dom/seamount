@@ -1,7 +1,7 @@
 """pi-forge identity adapter — BrineProvider bound to seamount.piforge keystore namespace.
 
-CONTEXT D-01: forge keypairs live under a per-forge keystore service namespace.
-For pi-forge that namespace is ``seamount.piforge`` (override via
+Forge keypairs live under a per-forge keystore service namespace. For
+pi-forge that namespace is ``seamount.piforge`` (override via
 ``PIFORGE_KEYRING_SERVICE`` env var; tests use a per-test ephemeral namespace).
 The forge identity string is ``pi-forge`` by default (override via
 ``PIFORGE_IDENTITY`` env var).

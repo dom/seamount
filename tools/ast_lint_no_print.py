@@ -23,10 +23,10 @@ ALLOWED_FRAGMENTS: tuple[str, ...] = (
     "/tests/",
     "/examples/",
 )
-# CONFLICT-03 (Phase 4 RESEARCH.md): five contractual print() call-sites in the
-# forges are allow-listed. They collapse into FOUR unique file paths because
-# the startup-banner print is emitted from the same server.py files as the
-# PIFORGE_READY / DESCRIBE_FORGE_READY readiness signals:
+# Five contractual print() call-sites in the forges are allow-listed. They
+# collapse into FOUR unique file paths because the startup-banner print is
+# emitted from the same server.py files as the PIFORGE_READY /
+# DESCRIBE_FORGE_READY readiness signals:
 #   - pi-forge/server.py            (PIFORGE_READY + startup banner)
 #   - pi-forge/pi_forge/__main__.py  (CLI entry banner)
 #   - describe-forge/server.py       (DESCRIBE_FORGE_READY + startup banner)

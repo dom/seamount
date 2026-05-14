@@ -4,9 +4,9 @@ Source of truth: seamount/README.md §"Forge Conformance Requirements" (items 1-
 plus §"Attack Surfaces and Mitigations" (AT-E1..AT-E5, lines 302-330).
 
 AT-E5 (timing side-channel) is a DISTINCT attack surface per the README, not
-folded into AT-E4 (forge impersonation). Phase 3 marks AT-E5 ``skip`` with the
-deferred reason cited inline; Phase 4 negative-test sweep flips AT-E1..AT-E5 to
-pass.
+folded into AT-E4 (forge impersonation). v0.1 marks AT-E1..AT-E5 ``skip``
+with deferred-reason text inline; full negative-test enforcement is a v0.2
+hardening item.
 """
 from __future__ import annotations
 
@@ -77,10 +77,10 @@ CHECKLIST: tuple[ChecklistItem, ...] = (
     ),
 )
 # Canonical source: seamount/README.md §"Forge Conformance Requirements" (items 1-8)
-# + §"Attack Surfaces and Mitigations" (AT-E1..AT-E5, lines 302-330). AT-E5 is a
-# DISTINCT surface (timing side-channel) per the README, not folded into AT-E4.
-# Phase 3 marks AT-E5 ``skip`` with reason
-#   "timing side-channel evaluation deferred to Phase 4 hardening (CONF-02 surface)".
-# Phase 4 negative-test sweep flips AT-E1..AT-E5 to pass.
+# + §"Attack Surfaces and Mitigations" (AT-E1..AT-E5). AT-E5 is a DISTINCT surface
+# (timing side-channel) per the README, not folded into AT-E4.
+# v0.1 marks AT-E1..AT-E5 ``skip`` with deferred-reason text; AT-E5 specifically
+# uses "timing side-channel evaluation deferred to v0.2 hardening (CONF-02 surface)".
+# Full negative-test enforcement is a v0.2 item.
 
 __all__ = ["ChecklistItem", "CHECKLIST"]

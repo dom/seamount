@@ -1,7 +1,7 @@
 # Architecture Decision Records (Seamount)
 
 Seamount inherits suite-wide architecture decisions from `thermocline-py`.
-Seamount has no repo-specific ADRs in v0.1 (per D-03 in Phase 4 CONTEXT).
+Seamount has no repo-specific ADRs in v0.1.
 
 ## Inherited from `thermocline-py`
 - [ADR-0001: Python 3.11 as primary language](../../../thermocline/docs/adr/ADR-0001-python-3-11-as-primary-language.md)

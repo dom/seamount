@@ -1,4 +1,4 @@
-"""pi-forge CLI: ``init`` + ``serve`` subcommands (CONTEXT D-01).
+"""pi-forge CLI: ``init`` + ``serve`` subcommands.
 
 Wire shape:
 

@@ -44,8 +44,8 @@ def _strip_for_verify(result: dict[str, Any]) -> dict[str, Any]:
     """Deep-copy a result and set ``receipt_signature.sig = None`` for canonicalize-match.
 
     The forge signed the result envelope with ``receipt_signature.sig = None``
-    (FORGE-01 / Plan 03-02 SP-3.2-01); the verifier must recover the same
-    canonical bytes by stripping the sig before re-canonicalizing.
+    (FORGE-01); the verifier must recover the same canonical bytes by
+    stripping the sig before re-canonicalizing.
     """
     out = copy.deepcopy(result)
     rs = out.get("receipt_signature")
@@ -322,19 +322,21 @@ def run_harness(
         except Exception as exc:  # noqa: BLE001
             results["8-error-codes"] = {"status": "fail", "message": str(exc)}
 
-        # Items AT-E1..AT-E4: Phase 4 covers full negative-test sweep; Phase 3 marks skip.
+        # Items AT-E1..AT-E4: v0.1 marks skip; full negative-test sweep is a
+        # v0.2 hardening item.
         for at_item in ("AT-E1", "AT-E2", "AT-E3", "AT-E4"):
             results[at_item] = {
                 "status": "skip",
-                "message": "covered fully in Phase 4 negative-test sweep",
+                "message": "covered fully in v0.2 negative-test sweep",
             }
         # Item AT-E5: timing side-channel — distinct surface per seamount/README.md
-        # line 326; Phase 3 cannot evaluate timing variance against a black-box
-        # forge, so we mark skip with the deferred-reason string.
+        # §"Attack Surfaces and Mitigations". A conformance harness cannot
+        # evaluate timing variance against a black-box forge, so we mark skip
+        # with the deferred-reason string.
         results["AT-E5"] = {
             "status": "skip",
             "message": (
-                "timing side-channel evaluation deferred to Phase 4 "
+                "timing side-channel evaluation deferred to v0.2 "
                 "hardening (CONF-02 surface)"
             ),
         }

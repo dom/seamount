@@ -3,9 +3,9 @@
 Failure mode: a hostile sovereign sends a malformed envelope to the forge;
 the forge MUST reject with a structured error response and never crash.
 
-The Phase 3 forge_conformance harness already validates schema enforcement
-across both pi-forge and describe-forge. This at_negative test documents
-the contract from the AT-E1 surface perspective.
+The forge_conformance harness already validates schema enforcement across
+both pi-forge and describe-forge. This at_negative test documents the
+contract from the AT-E1 surface perspective.
 """
 # AT-SURFACE: AT-E1
 from __future__ import annotations
@@ -48,7 +48,7 @@ def test_malformed_payload_rejected_documented() -> None:
     See seamount/conformance/forge_conformance/_harness.py — schema validation
     is performed on every dispatch and rejects unknown fields / wrong types.
     A live HTTP test would require spawning a forge subprocess; the
-    Phase 3 harness covers that path.
+    forge_conformance harness covers that path.
     """
     harness = Path(__file__).resolve().parents[1] / "forge_conformance"
     assert harness.is_dir(), (

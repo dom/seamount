@@ -1,7 +1,7 @@
 """describe-forge identity adapter — BrineProvider bound to seamount.describeforge.
 
-CONTEXT D-01: forges hold their keypairs under per-forge keystore namespaces.
-For describe-forge that namespace is ``seamount.describeforge`` (override via
+Forges hold their keypairs under per-forge keystore namespaces. For
+describe-forge that namespace is ``seamount.describeforge`` (override via
 ``DESCRIBEFORGE_KEYRING_SERVICE``). The forge identity string is
 ``describe-forge`` by default (override via ``DESCRIBEFORGE_IDENTITY``).
 

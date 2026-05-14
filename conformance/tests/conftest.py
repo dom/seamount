@@ -1,8 +1,9 @@
-"""forge_conformance test fixtures: subprocess forge spawner (mirrors photophore Plan 03-03).
+"""forge_conformance test fixtures: subprocess forge spawner.
 
-Self-contained fixture so the harness tests can run against real pi-forge and
-describe-forge processes on ephemeral ports + isolated keystore namespaces,
-without depending on photophore's tests/ tree.
+Self-contained fixture so the harness tests can run against real pi-forge
+and describe-forge processes on ephemeral ports + isolated keystore
+namespaces, without depending on photophore's tests/ tree. Mirrors the
+subprocess-spawn pattern used by photophore's own conformance fixtures.
 """
 from __future__ import annotations
 

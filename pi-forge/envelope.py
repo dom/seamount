@@ -185,7 +185,7 @@ def build_task_result(
     now = _now()
     result_id = str(uuid.uuid4())
     partial_result = {
-        "thermocline": "0.3.1",   # Phase 1 THERMO-07 alignment for new receipts
+        "thermocline": "0.3.1",   # THERMO-07: emit the current spec version on new receipts
         "type": "task_result",
         "envelope_id": envelope_id,
         "result_id": result_id,

@@ -1,20 +1,21 @@
 # Deploying pi-forge as a public reference forge
 
-This directory ships the operational surface for running `pi-forge v0.1.0` as the
-Thermocline suite's live reference deployment at **https://pi.dom.net**. The
-deployment proves the suite is reachable end-to-end with one `curl`. No code
-in `pi-forge` or `thermocline-py` changes — this is operational delivery.
-
-Source decisions: `thermocline/.planning/phases/05-deploy-pi-forge-as-public-reference-forge-at-pi-dom-net/05-CONTEXT.md`.
+This directory ships the operational surface for running `pi-forge v0.1.0` as
+a publicly reachable reference deployment. The reference instance maintained
+by the Thermocline authors is at **https://pi.dom.net**; the same artifacts
+deploy any compliant `pi-forge` instance behind any DNS name. No code in
+`pi-forge` or `thermocline-py` changes — this is operational delivery.
 
 ## Prerequisites
 
-1. **SSH + sudo** on `reference-host` (cloud host, `***REMOVED***` /
-   `***REMOVED***`).
-2. **DNS already pointing at the box** — `pi.dom.net` must resolve to the
-   box's public IPv4 (A) and IPv6 (AAAA) before `install.sh` runs Caddy.
-   `install.sh § Section 0` refuses to proceed on mismatch. ACME HTTP-01
-   on port 80 will fail otherwise.
+1. **SSH + sudo** on a fresh Ubuntu 24.04 host with a public IPv4 (and
+   optionally IPv6) address.
+2. **DNS already pointing at the host** — the public hostname you intend
+   to serve (e.g. `pi.example.net`) must resolve to the host's public IPv4
+   (A) and IPv6 (AAAA) before `install.sh` runs Caddy. `install.sh §0`
+   refuses to proceed on mismatch. ACME HTTP-01 on port 80 will fail
+   otherwise. Update the `PUBLIC_HOST` constant at the top of `install.sh`
+   to your hostname before first run.
 3. **`GITHUB_OWNER` substituted** in `install.sh` (top of file) so it can
    clone the canonical `thermocline` + `seamount` repos. The placeholder
    `<TODO-set-before-first-run>` triggers exit 2.
@@ -45,7 +46,7 @@ Five artifacts in this directory are installed onto the box:
 | Artifact | Installed at | Provided by |
 |---|---|---|
 | `pi-forge.service` | `/etc/systemd/system/pi-forge.service` | hardened systemd unit (`dbus-run-session` + `LoadCredentialEncrypted`) |
-| `pi-forge.caddy` | `/etc/caddy/Caddyfile` | single-site fresh-install Caddyfile for `pi.dom.net` |
+| `pi-forge.caddy` | `/etc/caddy/Caddyfile` | single-site fresh-install Caddyfile (replace the `pi.dom.net` placeholder with your `PUBLIC_HOST`) |
 | `pi-forge.env` | `/etc/pi-forge/pi-forge.env` | `FORGE_*` env contract (pins `FORGE_BIND_HOST=127.0.0.1`) |
 | `install.sh` | run from `/tmp` | idempotent installer (9 sections, `--dry-run` aware) |
 | `README.md` | this file | operator one-pager |
@@ -56,22 +57,22 @@ Plus box-side state created by `install.sh`:
 - `/srv/thermocline-suite/{thermocline,seamount}` git clones at `v0.1.0`.
 - `/srv/thermocline-suite/.venv` with editable installs of both packages.
 - `/etc/credstore.encrypted/keyring-pass` (systemd-creds, `--with-key=host`).
-- UFW active with rules for **22, 80, 443, 8001** only (8001 preserves
-  `example-cotenant.service`; no rule for 8002 because pi-forge is loopback-only).
+- UFW active with rules for **22, 80, 443** only (no rule for 8002 because
+  pi-forge is loopback-only via `FORGE_BIND_HOST=127.0.0.1`). If you are
+  co-tenanting another public service on this host, add its port to §7 of
+  `install.sh` before running.
 - Caddy installed from cloudsmith stable and `apt-mark hold`-ed.
 
 ## What this does NOT deploy or change
 
-- **`example-cotenant.service` stays exactly where it is** on `0.0.0.0:8001`
-  without TLS. Migrating it behind Caddy at `example-cotenant.dom.net` is a
-  separate future project (CONTEXT D-04).
 - **No observability** beyond `/health` and `journalctl`. No Prometheus,
-  no Loki, no log shipping (CONTEXT deferred ideas).
-- **No in-forge AT-E2 payload-size limit** — Caddy's
-  `request_body { max_size 16KB }` on `/task` is the v0.1 backstop
-  (CONTEXT D-09).
+  no Loki, no log shipping. Standard Caddy / systemd journal patterns
+  apply if you want them.
+- **No in-forge payload-size limit** — Caddy's
+  `request_body { max_size 16KB }` on `/task` is the v0.1 backstop. AT-E2
+  (resource-exhaustion) enforcement at the forge layer is a v0.2 item.
 - **No CI deploy automation** — `install.sh` is invoked manually over SSH
-  (trust-is-never-automated, CONTEXT D-10).
+  by an operator. Deliberate: deployment is a trust-significant event.
 
 ## Install procedure
 
@@ -84,7 +85,7 @@ git status   # confirm pi-forge/deploy/ files are committed
 git push origin <deploy-branch>
 ```
 
-On the box (`ssh ubuntu@***REMOVED***` or `ssh pleco`):
+On the host (`ssh <user>@<your-deploy-host>`):
 
 ```bash
 sudo apt update && sudo apt install -y git
@@ -106,49 +107,50 @@ Run from a clean laptop (NOT from the box). All five steps should pass.
 
 ```bash
 # Step 1 — pubkey shape (must-have truth #1).
-curl -sf https://pi.dom.net/pubkey \
+curl -sf https://${PUBLIC_HOST}/pubkey \
 	| jq 'if (.key_scheme == "brine" and .identity == "pi-forge"
 	         and (.pubkey | length) == 64)
 	      then "OK" else error("malformed: \(.)") end'
 
 # Step 2 — health.
-curl -sf https://pi.dom.net/health \
+curl -sf https://${PUBLIC_HOST}/health \
 	| jq 'if (.status == "ok" and .forge == "pi-forge")
 	      then "OK" else error("malformed: \(.)") end'
 
 # Step 3 — signed task result.
-curl -sf -X POST https://pi.dom.net/task \
+curl -sf -X POST https://${PUBLIC_HOST}/task \
 	-H 'content-type: application/json' \
 	--data @/path/to/seamount/pi-forge/examples/task-100-digits.json \
 	| jq 'if (.receipt_signature.sig != null
 	          and .task_result.outputs.digits_computed == 100)
 	      then "OK" else error("malformed: \(.)") end'
 
-# Step 4 — loopback bind + example-cotenant co-tenancy.
-nmap -p 8001,8002 pi.dom.net
-# Expect: 8001/tcp open (example-cotenant, preserved); 8002/tcp closed or filtered.
+# Step 4 — loopback bind verification.
+nmap -p 8002 ${PUBLIC_HOST}
+# Expect: 8002/tcp closed or filtered (pi-forge bind is loopback-only via
+# FORGE_BIND_HOST=127.0.0.1; Caddy reverse-proxies the public traffic).
 
-# Step 5 — restart + reboot survival (run via SSH on the box).
+# Step 5 — restart + reboot survival (run via SSH on the host).
 sudo systemctl restart pi-forge && sleep 5 \
-	&& curl -sf https://pi.dom.net/pubkey >/dev/null \
+	&& curl -sf https://${PUBLIC_HOST}/pubkey >/dev/null \
 	&& echo "restart survived"
 sudo reboot
 # After SSH reconnects:
-curl -sf https://pi.dom.net/pubkey >/dev/null && echo "reboot survived"
+curl -sf https://${PUBLIC_HOST}/pubkey >/dev/null && echo "reboot survived"
 ```
 
 After Step 1 succeeds and Step 4 confirms 8002 closed, commit the BLAKE3
 fingerprint to `seamount/pi-forge/README.md § Live Reference Deployment`:
 
 ```bash
-HEX_PUBKEY=$(curl -sf https://pi.dom.net/pubkey | jq -r .pubkey)
+HEX_PUBKEY=$(curl -sf https://${PUBLIC_HOST}/pubkey | jq -r .pubkey)
 FP=$(printf '%s' "$HEX_PUBKEY" | xxd -r -p | b3sum | awk '{print $1}')
 echo "blake3:$FP"
 ```
 
 ## Rollback / recovery
 
-Full uninstall path; preserves example-cotenant.
+Full uninstall path.
 
 ```bash
 sudo systemctl disable --now pi-forge caddy
@@ -180,25 +182,26 @@ sudo systemctl restart pi-forge
 | 2 (Caddy) | apt repo signature error | Re-fetch `gpg.key`; confirm `/usr/share/keyrings/caddy-stable-archive-keyring.gpg` is present. |
 | 4 (clones) | `fatal: could not read Username for 'https://github.com'` | Set `GITHUB_OWNER` and confirm the repos are public (or pre-authenticate). |
 | 5 (keyring) | `gnome-keyring-daemon: error: locked` | Section 5's idempotency guard fired but keyring is locked from a prior partial install. Wipe `~pi-forge/.local/share/keyrings/` AND `/etc/credstore.encrypted/keyring-pass`, then re-run. |
-| 5 (TPM) | `/dev/tpm*` warning | Informational only on this box — `--with-key=host` is the operational floor. |
-| 7 (UFW) | SSH disconnected mid-install | Recover via cloud provider cloud console; run `ufw disable` to roll back; re-run `install.sh`. Always confirm `ufw status verbose` before disconnecting. |
+| 5 (TPM) | `/dev/tpm*` warning | Informational only on hosts without TPM — `--with-key=host` is the operational floor. |
+| 7 (UFW) | SSH disconnected mid-install | Recover via your cloud provider's serial / web console; run `ufw disable` to roll back; re-run `install.sh`. Always confirm `ufw status verbose` before disconnecting. |
 | 8 (Caddy) | `429 Too Many Requests` from Let's Encrypt | ACME rate-limited; wait ≥1h before retrying. DNS pre-flight should have prevented this; if it fires anyway, your DNS may be intermittent. |
-| 9 (probe) | Readiness timeout | `journalctl -u pi-forge --since "2 minutes ago" -n 200`; the keyring unlock chain is the typical culprit (RESEARCH Pattern 3). |
+| 9 (probe) | Readiness timeout | `journalctl -u pi-forge --since "2 minutes ago" -n 200`; the keyring unlock chain is the typical culprit. |
 | Verification Step 4 | `8002/tcp open` externally | `FORGE_BIND_HOST` not honored. Confirm `/etc/pi-forge/pi-forge.env` contains `FORGE_BIND_HOST=127.0.0.1` and `systemctl restart pi-forge`. |
 
 ## Known constraints
 
 - **`request_body { max_size }` is experimental in Caddy 2.10+.** install.sh
-  Section 2 `apt-mark hold caddy` pins against surprise upgrades; revisit
-  when v3.x lands (CONTEXT D-09 / RESEARCH Pitfall 8).
-- **`--with-key=host`, not TPM.** `/dev/tpm*` is absent on this cloud provider
-  plan; `systemd-creds` falls back to host-key encryption. TPM-bound
-  passphrase is a v0.2+ candidate (CONTEXT D-07).
+  §2 `apt-mark hold caddy` pins against surprise upgrades; revisit when
+  Caddy 3.x lands.
+- **`--with-key=host`, not TPM.** On hosts without `/dev/tpm*`,
+  `systemd-creds` falls back to host-key encryption. TPM-bound passphrase
+  is a v0.2+ candidate; the v0.1 baseline trades some defense in depth for
+  portability across cloud providers that may not expose a TPM.
 - **`MemoryDenyWriteExecute=true` commented out** in the systemd unit.
   PyNaCl's libsodium loader may break under that flag; enable empirically
-  and curl-test before promoting permanent (RESEARCH Pitfall 7).
+  and curl-test before promoting permanent.
 
-## Known upstream nits (do not fix in Phase 5)
+## Known upstream nits
 
 - **`server.py:174` defaults to `host="0.0.0.0"`.** Should default to
   `127.0.0.1` for safety. The systemd `FORGE_BIND_HOST=127.0.0.1` env

@@ -1,6 +1,6 @@
 """End-to-end harness tests against real pi-forge + describe-forge subprocesses.
 
-Tests 1, 2, 3, 4, 7 of Plan 03-03 Task 3:
+Coverage:
     - test_harness_runs_against_pi_forge
     - test_harness_runs_against_describe_forge
     - test_harness_detects_invalid_receipt_signature
@@ -39,7 +39,8 @@ def test_harness_runs_against_pi_forge(
     Asserts at least these items report ``pass``:
         1-envelope-handling, 2-sig-verification, 4-statelessness,
         7-receipt-signatures, 8-error-codes
-    (Items 9-13 = AT-E1..AT-E5 are Phase 4 negative-test sweep; Phase 3 skip.)
+    (Items 9-13 = AT-E1..AT-E5 are skipped in v0.1; full negative-test
+    enforcement is a v0.2 hardening item.)
     """
     forge = conformance_forge
     results = run_harness(
@@ -65,7 +66,7 @@ def test_harness_runs_against_pi_forge(
                 f"{entry['id']} expected pass, got "
                 f"{entry['status']}: {entry['message']!r}"
             )
-    # Phase 4 deferrals are skipped, not failed.
+    # v0.2 deferrals are skipped, not failed.
     for at_id in ("AT-E1", "AT-E2", "AT-E3", "AT-E4", "AT-E5"):
         entry = next(e for e in report["checklist"] if e["id"] == at_id)
         assert entry["status"] == "skip"

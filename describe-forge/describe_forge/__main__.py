@@ -1,4 +1,4 @@
-"""describe-forge CLI: ``init`` + ``serve`` subcommands (CONTEXT D-01).
+"""describe-forge CLI: ``init`` + ``serve`` subcommands.
 
 Mirrors pi-forge's __main__.py with these differences:
     - Default keystore namespace ``seamount.describeforge``

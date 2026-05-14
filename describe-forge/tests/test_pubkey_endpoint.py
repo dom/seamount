@@ -1,4 +1,4 @@
-"""describe-forge GET /pubkey endpoint shape (CONTEXT D-01)."""
+"""describe-forge GET /pubkey endpoint shape."""
 from __future__ import annotations
 
 

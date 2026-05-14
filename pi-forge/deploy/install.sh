@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 #
-# install.sh — idempotent bootstrap for pi-forge on reference-host.
+# install.sh — idempotent bootstrap for pi-forge on a fresh Ubuntu host.
 #
-# Phase 5 (Plan 05-01). Run as root via sudo on the cloud provider box.
-# CONTEXT references: D-01, D-02, D-04, D-05, D-07, D-09, D-11.
-# RESEARCH references: Patterns 1-5; Pitfalls 1-10.
+# Run as root via sudo on the target host.
 #
 # Usage:
 #   sudo bash install.sh --dry-run    # print every action; box state unchanged
@@ -41,11 +39,10 @@ PI_FORGE_PORT="8002"
 KEYRING_SERVICE="seamount.piforge"
 CRED_NAME="keyring-pass"
 CRED_ENC_PATH="/etc/credstore.encrypted/${CRED_NAME}"
-# Pre-public iteration phase (Phase 5): pin to main rather than v0.1.0
-# because v0.1.0's pi_forge/__main__.py hardcodes app.run(host="0.0.0.0")
-# — the FORGE_BIND_HOST env-var support was added in post-v0.1.0 CI-followup
-# commits. CONTEXT D-01's tag-pinning intent is deferred until a v0.1.1
-# cut that includes the bind-host fix.
+# Pin to main rather than v0.1.0: v0.1.0's pi_forge/__main__.py hardcodes
+# app.run(host="0.0.0.0"); FORGE_BIND_HOST env-var support was added in
+# post-v0.1.0 CI-followup commits. Tag-pinning will resume at v0.1.1 once
+# the bind-host fix is tagged.
 SUITE_TAG="main"
 
 DRY_RUN=0
@@ -72,7 +69,7 @@ if [[ "${GITHUB_OWNER}" == "<TODO-set-before-first-run>" ]]; then
 fi
 
 # maybe: print-and-skip in dry-run mode; execute otherwise.
-# Mirrors the tag-v0.1.0.sh pattern (Phase 4 D-06).
+# Mirrors the tag-v0.1.0.sh dry-run/real-run pattern.
 maybe() {
 	if [[ "${DRY_RUN}" == "1" ]]; then
 		echo "DRY: $*"
@@ -87,7 +84,7 @@ as_pi_forge() {
 }
 
 # ---------------------------------------------------------------------------
-# Section 0 — DNS pre-flight (RESEARCH Pitfall 6)
+# Section 0 — DNS pre-flight
 # ---------------------------------------------------------------------------
 
 echo "==> Section 0: DNS pre-flight for ${PUBLIC_HOST}"
@@ -112,7 +109,7 @@ fi
 echo "    OK: ${PUBLIC_HOST}=${PI_DOM_A} matches this box."
 
 # ---------------------------------------------------------------------------
-# Section 1 — apt prerequisites (CONTEXT D-07; RESEARCH Pitfall 4)
+# Section 1 — apt prerequisites
 # ---------------------------------------------------------------------------
 
 echo "==> Section 1: apt prerequisites (gnome-keyring + libsecret + dbus-x11)"
@@ -131,7 +128,7 @@ maybe apt-get install -y \
 	python3-venv
 
 # ---------------------------------------------------------------------------
-# Section 2 — Caddy install + apt-mark hold (CONTEXT D-04; RESEARCH Pitfall 8)
+# Section 2 — Caddy install + apt-mark hold
 # ---------------------------------------------------------------------------
 
 echo "==> Section 2: Caddy install (cloudsmith stable) + pin against apt upgrade"
@@ -292,22 +289,22 @@ as_pi_forge "${VENV_DIR}/bin/pip" install -e "${INSTALL_ROOT}/seamount/pi-forge"
 
 # ---------------------------------------------------------------------------
 # Section 5 — systemd-creds passphrase + first-boot pi-forge init
-#   CONTEXT D-07 — SINGLE OPERATIONAL RISK OF THE PHASE
-#   RESEARCH Pattern 2 + Pitfall 9
+#
+# This is the single operational risk of the install: regenerating the
+# passphrase against an already-unlocked keyring locks the operator out
+# (KeyringLocked at next init). Guard idempotently on both the encrypted
+# passphrase AND a keyring file already existing.
 # ---------------------------------------------------------------------------
 
 echo "==> Section 5: systemd-creds passphrase + first-boot pi-forge init"
 
-# Idempotency guard (RESEARCH Pitfall 9): if the encrypted passphrase AND
-# ANY pi-forge keyring file already exist, skip the entire section.
-# Regenerating the passphrase against an already-unlocked keyring locks
-# the operator out (KeyringLocked at next init).
+# Idempotency guard: if the encrypted passphrase AND ANY pi-forge keyring
+# file already exist, skip the entire section.
 #
-# gnome-keyring-daemon with --components=secrets creates login.keyring
-# (the SecretService default), not default.keyring (the earlier draft of
-# this guard checked default.keyring and missed login.keyring; the second
-# install.sh run regenerated the passphrase and locked the operator out
-# of the existing login.keyring during the 2026-05-13 first deploy).
+# gnome-keyring-daemon with --components=secrets creates `login.keyring`
+# (the SecretService default), not `default.keyring`. Check for any
+# `*.keyring` rather than a specific name to avoid lockout if the keyring
+# layout changes across gnome-keyring releases.
 KEYRING_DIR="${INSTALL_ROOT}/.local/share/keyrings"
 KEYRING_PRESENT=0
 if [[ -d "${KEYRING_DIR}" ]] && compgen -G "${KEYRING_DIR}/*.keyring" >/dev/null; then
@@ -319,8 +316,9 @@ if [[ -f "${CRED_ENC_PATH}" ]] && [[ "${KEYRING_PRESENT}" = "1" ]]; then
 else
 	maybe systemd-creds setup
 
-	# /dev/tpm* absent on this cloud provider box -> --with-key=host (CONTEXT D-07,
-	# RESEARCH Pattern 2). TPM-bound would be stronger; v0.2+ candidate.
+	# `--with-key=host` is the v0.1 baseline (encrypts the passphrase with a
+	# host-derived key). TPM-bound encryption (`--with-key=tpm2`) is stronger
+	# but requires `/dev/tpm*` to exist; v0.2+ candidate.
 	if ls /dev/tpm* >/dev/null 2>&1; then
 		echo "    NOTE: /dev/tpm* present — but install.sh still uses --with-key=host"
 		echo "          for v0.1 consistency. v0.2 will promote to --with-key=tpm2."
@@ -361,8 +359,8 @@ maybe install -d -m 0750 -o "${PI_FORGE_USER}" -g "${PI_FORGE_GROUP}" /etc/pi-fo
 maybe install -m 0640 -o "${PI_FORGE_USER}" -g "${PI_FORGE_GROUP}" \
 	"${DEPLOY_DIR}/pi-forge.env" /etc/pi-forge/pi-forge.env
 
-# RESEARCH Pitfall 10: Caddy log dir + file permissions. The caddy user is
-# created by the cloudsmith package install in §2.
+# Caddy log dir + file permissions. The `caddy` user is created by the
+# cloudsmith Caddy package install in §2.
 maybe install -d -m 0750 -o caddy -g caddy /var/log/caddy
 if [[ ! -f /var/log/caddy/pi-forge.log ]]; then
 	maybe install -m 0640 -o caddy -g caddy /dev/null /var/log/caddy/pi-forge.log
@@ -388,7 +386,7 @@ if systemctl is-active --quiet caddy; then
 fi
 
 # ---------------------------------------------------------------------------
-# Section 7 — UFW atomic enable cycle (RESEARCH Pattern 4 / Pitfall 3)
+# Section 7 — UFW atomic enable cycle
 #
 # CRITICAL ORDERING: rules-first, enable-LAST. A partial rule-set with an
 # early `ufw enable` will sever the active SSH session.
@@ -402,10 +400,9 @@ if ! ufw status | grep -q "Status: active"; then
 	maybe ufw allow 22/tcp comment 'SSH'
 	maybe ufw allow 80/tcp comment 'Caddy ACME HTTP-01'
 	maybe ufw allow 443/tcp comment 'Caddy TLS'
-	# CONTEXT D-02: preserve example-cotenant.service public API on 8001/tcp.
-	# Omitting this rule would blackhole example-cotenant the moment UFW activates.
-	maybe ufw allow 8001/tcp comment 'example-cotenant public API'
 	# No rule for 8002 — pi-forge bind is loopback-only (FORGE_BIND_HOST).
+	# If you are co-tenanting another public service on this host, add its
+	# port here BEFORE the `ufw --force enable` line below.
 	maybe ufw --force enable
 	maybe ufw status verbose
 else

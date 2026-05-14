@@ -47,9 +47,9 @@ def test_at_e2_fixture_present() -> None:
 def test_oversized_payload_rejected() -> None:
     """AT-E2: a digits=10_000_000 envelope should be rejected before computation.
 
-    Marked xfail per CONTEXT D-11 ship-discipline: v0.1 forges do not enforce
-    upper bounds; v0.2 will add a configurable size limit. This test fails
-    cleanly when invoked, surfacing the gap.
+    Marked xfail because v0.1 forges do not enforce upper bounds; v0.2 will
+    add a configurable size limit. This test fails cleanly when invoked,
+    surfacing the gap.
     """
     pytest.fail(
         "AT-E2: pi-forge does not enforce digits upper bound in v0.1; "

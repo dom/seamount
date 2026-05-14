@@ -62,10 +62,10 @@ python -m forge_conformance --target http://127.0.0.1:5200 --role describe-forge
 }
 ```
 
-Phase 3 marks AT-E1..AT-E5 as `skip` with deferred-reason text; Phase 4's
-negative-test sweep flips them to `pass`. AT-E5 specifically is marked
+v0.1 marks AT-E1..AT-E5 as `skip` with deferred-reason text; full negative-
+test enforcement is a v0.2 hardening item. AT-E5 specifically is marked
 `skip` with the reason
-`"timing side-channel evaluation deferred to Phase 4 hardening (CONF-02 surface)"`.
+`"timing side-channel evaluation deferred to v0.2 hardening (CONF-02 surface)"`.
 
 ## What gets exercised
 

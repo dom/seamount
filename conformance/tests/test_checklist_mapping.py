@@ -1,9 +1,4 @@
-"""Tests for the 13-item conformance checklist + report structure.
-
-Tests 5 + 6 of Plan 03-03 Task 3:
-    - test_checklist_has_13_items
-    - test_report_json_shape
-"""
+"""Tests for the 13-item conformance checklist + report structure."""
 from __future__ import annotations
 
 import json
@@ -13,12 +8,12 @@ from forge_conformance._report import build_report
 
 
 def test_checklist_has_13_items() -> None:
-    """Plan 03-03 WARNING 2: the checklist has exactly 13 items.
+    """The checklist has exactly 13 items.
 
     8 numbered conformance items (1-8) from seamount/README.md §"Forge
     Conformance Requirements" + 5 attack-surface items (AT-E1..AT-E5) from
     §"Attack Surfaces and Mitigations". AT-E5 is a DISTINCT 13th item
-    (timing side-channel) per the README line 326, NOT folded into AT-E4.
+    (timing side-channel), NOT folded into AT-E4.
     """
     assert len(CHECKLIST) == 13, (
         f"expected 13 checklist items (8 numbered + 5 AT-E), got {len(CHECKLIST)}"

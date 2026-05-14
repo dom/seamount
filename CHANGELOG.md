@@ -39,8 +39,10 @@ versioning per [SemVer](https://semver.org/spec/v2.0.0.html).
   with the `receipt_signature.sig=""` (empty string, not removed)
   canonicalization shape and emit the `sig` field (verifiers MAY accept
   either `sig` or `bytes_hex` for compatibility with pre-0.3.1 drafts).
-  Co-discovered with the dispatch coordinator during Phase 3 integration;
-  promoted from coordinator-internal to spec-level via CONFLICT-02 in Phase 4.
+  These invariants were co-discovered while integrating the forges with the
+  reference dispatch coordinator, then promoted to spec-level after we
+  confirmed any third-party implementation would otherwise reverse-engineer
+  the Python coordinator to discover them.
 
 ### Deferred to subsequent milestones
 
@@ -53,7 +55,7 @@ versioning per [SemVer](https://semver.org/spec/v2.0.0.html).
 ### Known limitations
 
 - **`mypy --strict` on forges deferred to v0.2.** Both `pi-forge` (20 errors)
-  and `describe-forge` (17 errors) exceeded Plan 04-01 Task 5's >3-error
+  and `describe-forge` (17 errors) exceeded the pre-v0.1 audit's >3-error
   auto-fix budget. v0.1 ships with non-strict mypy on both forges (ruff +
   pytest are the primary type guards). Re-enable by uncommenting
   `strict = true` in each forge's `pyproject.toml [tool.mypy]` section.

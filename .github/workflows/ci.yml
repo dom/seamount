@@ -36,10 +36,10 @@ jobs:
       - name: AT coverage (seamount = AT-E*)
         working-directory: seamount
         run: python tools/at_coverage.py
-      # mypy --strict on forges deferred to v0.2 (CONFLICT-04 option b).
-      # See pi-forge/pyproject.toml and describe-forge/pyproject.toml
-      # [tool.mypy] for the deferral rationale; the strict gate is queued
-      # for v0.2 with a Known-limitation entry in seamount/CHANGELOG.md.
+      # mypy --strict on forges deferred to v0.2. See pi-forge/pyproject.toml
+      # and describe-forge/pyproject.toml [tool.mypy] for the deferral
+      # rationale and the v0.2 re-enable steps; tracked under "Known
+      # limitations" in seamount/CHANGELOG.md.
 
   forge-unit-tests:
     runs-on: macos-latest

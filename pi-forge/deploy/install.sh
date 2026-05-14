@@ -298,13 +298,23 @@ as_pi_forge "${VENV_DIR}/bin/pip" install -e "${INSTALL_ROOT}/seamount/pi-forge"
 
 echo "==> Section 5: systemd-creds passphrase + first-boot pi-forge init"
 
-# Idempotency guard (RESEARCH Pitfall 9): if the encrypted passphrase AND a
-# pi-forge keyring entry already exist, skip the entire section. Regenerating
-# the passphrase against an already-unlocked keyring locks the operator out.
-KEYRING_FILE="$(getent passwd "${PI_FORGE_USER}" | cut -d: -f6)/.local/share/keyrings/default.keyring"
-KEYRING_FILE_ALT="${INSTALL_ROOT}/.local/share/keyrings/default.keyring"
+# Idempotency guard (RESEARCH Pitfall 9): if the encrypted passphrase AND
+# ANY pi-forge keyring file already exist, skip the entire section.
+# Regenerating the passphrase against an already-unlocked keyring locks
+# the operator out (KeyringLocked at next init).
+#
+# gnome-keyring-daemon with --components=secrets creates login.keyring
+# (the SecretService default), not default.keyring (the earlier draft of
+# this guard checked default.keyring and missed login.keyring; the second
+# install.sh run regenerated the passphrase and locked the operator out
+# of the existing login.keyring during the 2026-05-13 first deploy).
+KEYRING_DIR="${INSTALL_ROOT}/.local/share/keyrings"
+KEYRING_PRESENT=0
+if [[ -d "${KEYRING_DIR}" ]] && compgen -G "${KEYRING_DIR}/*.keyring" >/dev/null; then
+	KEYRING_PRESENT=1
+fi
 
-if [[ -f "${CRED_ENC_PATH}" ]] && { [[ -f "${KEYRING_FILE}" ]] || [[ -f "${KEYRING_FILE_ALT}" ]]; }; then
+if [[ -f "${CRED_ENC_PATH}" ]] && [[ "${KEYRING_PRESENT}" = "1" ]]; then
 	echo "    skip: ${CRED_ENC_PATH} and pi-forge keyring already present."
 else
 	maybe systemd-creds setup

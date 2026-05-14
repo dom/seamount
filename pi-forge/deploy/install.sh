@@ -270,11 +270,19 @@ as_pi_forge "${VENV_DIR}/bin/pip" install --upgrade pip
 
 # RESEARCH A10: install thermocline FIRST (sibling-repo editable) so pip
 # resolves the local checkout before reaching for PyPI when installing pi-forge.
+#
+# Real repo layouts at v0.1.0 (discovered during deploy, plan misread the
+# directory depth):
+#   /srv/thermocline-suite/thermocline/thermocline/python/  (3 levels —
+#       the thermocline repo nests its Python project under thermocline/)
+#   /srv/thermocline-suite/seamount/pi-forge/               (2 levels —
+#       seamount keeps its forge subprojects at the top level)
+#
 # Literal paths are duplicated below so structural grep gates can confirm
 # the install order; the assignments above must agree.
-# pip install -e /srv/thermocline-suite/thermocline/python
+# pip install -e /srv/thermocline-suite/thermocline/thermocline/python
 # pip install -e /srv/thermocline-suite/seamount/pi-forge
-as_pi_forge "${VENV_DIR}/bin/pip" install -e "${INSTALL_ROOT}/thermocline/python"
+as_pi_forge "${VENV_DIR}/bin/pip" install -e "${INSTALL_ROOT}/thermocline/thermocline/python"
 as_pi_forge "${VENV_DIR}/bin/pip" install -e "${INSTALL_ROOT}/seamount/pi-forge"
 
 # ---------------------------------------------------------------------------

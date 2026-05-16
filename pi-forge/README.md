@@ -25,10 +25,10 @@ If your client can talk to pi-forge, it can talk to any Thermocline forge.
 
 ## Live Reference Deployment
 
-A pre-public-announcement reference instance is running at
-**https://pi.dom.net** while the suite iterates. Once `dom/thermocline`,
-`dom/photophore`, and `dom/seamount` go public this section becomes the
-suite's standing TOFU notary for the deployed brine pubkey.
+A public reference instance is running at **https://pi.dom.net**. This
+section is the suite's standing TOFU notary for the deployed brine pubkey:
+clients should pin the BLAKE3 fingerprint below on first contact and treat
+any change as a re-deployment event.
 
 | Field | Value |
 |---|---|

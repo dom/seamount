@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llm-forge"
+version = "0.1.0"
+description = "Thermocline-compliant reference forge: relay-signs an OpenAI-compatible inference call"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "flask>=3.0",
+    "httpx>=0.27",
+    "thermocline>=0.3.1",
+    "photophore>=0.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+llm-forge = "llm_forge.__main__:main"
+
+[tool.setuptools]
+py-modules = ["server", "envelope", "providers", "shadows", "forge_identity"]
+packages = ["llm_forge"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true

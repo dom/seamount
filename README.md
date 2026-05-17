@@ -30,6 +30,24 @@ running a policy engine (Photophore or equivalent).
 
 ---
 
+## Reference Implementations
+
+Two reference forges live in this repo; both satisfy the conformance requirements
+below and share no code beyond `thermocline-py` imports — exercising the
+"spec, not framework" posture in practice.
+
+| Forge | Task type | Determinism | Receipt attests | Photophore | Live reference |
+|---|---|---|---|---|---|
+| [`pi-forge/`](./pi-forge/) | `data.compute` (π to N digits) | bit-identical reruns | computed result + integrity | no | https://pi.dom.net |
+| [`llm-forge/`](./llm-forge/) | `data.inference.text` (OpenAI-compatible chat completion) | nondeterministic | **relay fidelity** + integrity (NOT inference correctness — see its README) | shadowed mode | BYOK local only |
+
+`llm-forge` is intentionally a weaker verifiability story than `pi-forge`: the
+signature commits to faithful relay of the call, not to LLM output correctness.
+This caveat is load-bearing — see [`llm-forge/README.md` §"What the signature
+does and does not attest"](./llm-forge/README.md).
+
+---
+
 ## Design Philosophy
 
 **Stateless by design.** Seamount holds no memory between tasks or jobs. Each

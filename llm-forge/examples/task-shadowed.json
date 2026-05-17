@@ -1,0 +1,32 @@
+{
+  "thermocline": "0.3.1",
+  "type": "task",
+  "envelope_id": "task-llm-shadowed-001",
+  "issued_at": "2026-05-16T12:00:00Z",
+  "issuer": "example-sovereign",
+  "task": {
+    "type": "data.inference.text",
+    "instruction": "Run text inference, return only photophore shadows of prompt and response.",
+    "parameters": {
+      "model": "deepseek-v4-pro",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Translate this into formal English: 'lol that PR landed at 3am'"
+        }
+      ],
+      "max_tokens": 200,
+      "temperature": 0.0,
+      "privacy_mode": "shadowed"
+    }
+  },
+  "context": [],
+  "dispatch_signature": {
+    "key_scheme": "none",
+    "node_id": "example-sovereign",
+    "policy_hash": null,
+    "shadows_generated": [],
+    "timestamp": "2026-05-16T12:00:00Z",
+    "sig": null
+  }
+}

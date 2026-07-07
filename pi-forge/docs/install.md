@@ -37,7 +37,7 @@ python -m pi_forge init --keyring-service seamount.piforge
 
 This generates a new keypair, stores the private half in the keystore, and
 prints the public key. The first invocation triggers a Keychain prompt on
-macOS — click **"Always Allow"** so the `serve` command doesn't re-prompt.
+macOS. Click **"Always Allow"** so the `serve` command doesn't re-prompt.
 
 ## 4. Serve
 
@@ -51,11 +51,11 @@ Wait for the readiness marker:
 PIFORGE_READY port=5117
 ```
 
-This marker is contractual — Photophore's integration-test harness greps for
+This marker is contractual. Photophore's integration-test harness greps for
 it. The server exposes:
 
-- `GET /pubkey` — public key for TOFU acquisition.
-- `POST /task` — accept and process a `task` envelope; return a signed
+- `GET /pubkey`, public key for TOFU acquisition.
+- `POST /task`, accept and process a `task` envelope; return a signed
   `task_result`.
 
 ## 5. Verify

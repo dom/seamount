@@ -1,4 +1,4 @@
-# `forge_conformance` — Thermocline Forge Conformance Harness
+# `forge_conformance` (Thermocline Forge Conformance Harness)
 
 Cross-suite conformance test harness for any Thermocline forge. Runs the
 **Seamount 13-item conformance checklist** against a live forge URL and emits
@@ -35,9 +35,9 @@ python -m forge_conformance --target http://127.0.0.1:5200 --role describe-forge
 
 ## Exit codes
 
-- `0` — all checklist items report `pass` or `skip`; nothing failed.
-- `1` — at least one item reports `fail`.
-- `2` — bootstrap error (could not reach `/pubkey` on the target URL).
+- `0`, all checklist items report `pass` or `skip`; nothing failed.
+- `1`, at least one item reports `fail`.
+- `2`, bootstrap error (could not reach `/pubkey` on the target URL).
 
 ## Report structure
 
@@ -85,8 +85,8 @@ python -m pytest tests/ -xvs
 ```
 
 Includes:
-- `test_checklist_mapping.py` — 13-item invariant + report shape.
-- `test_harness.py` — live subprocess pi-forge + describe-forge + forged-sig forge.
+- `test_checklist_mapping.py`, 13-item invariant + report shape.
+- `test_harness.py`, live subprocess pi-forge + describe-forge + forged-sig forge.
 
 ## CI integration
 

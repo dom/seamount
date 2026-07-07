@@ -4,13 +4,13 @@ This directory ships the operational surface for running `pi-forge v0.1.0` as
 a publicly reachable reference deployment. The reference instance maintained
 by the Thermocline authors is at **https://pi.dom.net**; the same artifacts
 deploy any compliant `pi-forge` instance behind any DNS name. No code in
-`pi-forge` or `thermocline-py` changes — this is operational delivery.
+`pi-forge` or `thermocline-py` changes. This is operational delivery.
 
 ## Prerequisites
 
 1. **SSH + sudo** on a fresh Ubuntu 24.04 host with a public IPv4 (and
    optionally IPv6) address.
-2. **DNS already pointing at the host** — the public hostname you intend
+2. **DNS already pointing at the host.** The public hostname you intend
    to serve (e.g. `pi.example.net`) must resolve to the host's public IPv4
    (A) and IPv6 (AAAA) before `install.sh` runs Caddy. `install.sh §0`
    refuses to proceed on mismatch. ACME HTTP-01 on port 80 will fail
@@ -68,10 +68,10 @@ Plus box-side state created by `install.sh`:
 - **No observability** beyond `/health` and `journalctl`. No Prometheus,
   no Loki, no log shipping. Standard Caddy / systemd journal patterns
   apply if you want them.
-- **No in-forge payload-size limit** — Caddy's
+- **No in-forge payload-size limit.** Caddy's
   `request_body { max_size 16KB }` on `/task` is the v0.1 backstop. AT-E2
   (resource-exhaustion) enforcement at the forge layer is a v0.2 item.
-- **No CI deploy automation** — `install.sh` is invoked manually over SSH
+- **No CI deploy automation.** `install.sh` is invoked manually over SSH
   by an operator. Deliberate: deployment is a trust-significant event.
 
 ## Install procedure

@@ -2,7 +2,7 @@
 
 `describe-forge` is a tier-1-aware Seamount forge: it accepts tier-1 shadow
 envelopes and returns templated descriptions of the shadow content. Unlike
-pi-forge, it operates on the abstraction (not the source content) — the
+pi-forge, it operates on the abstraction (not the source content). The
 sovereign node's shadow generation is what makes the forge useful.
 
 ## 1. Prerequisites
@@ -32,7 +32,7 @@ uv pip install -e .[dev]
 python -m describe_forge init --keyring-service seamount.describeforge
 ```
 
-First invocation triggers a Keychain prompt on macOS — click **"Always Allow"**.
+First invocation triggers a Keychain prompt on macOS. Click **"Always Allow"**.
 
 ## 4. Serve
 

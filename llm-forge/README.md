@@ -1,4 +1,4 @@
-# llm-forge — Thermocline-compliant relay forge for OpenAI-compatible inference
+# llm-forge (Thermocline-compliant relay forge for OpenAI-compatible inference)
 
 `llm-forge` is the second reference implementation in the Thermocline suite.
 It accepts a Thermocline task envelope, forwards the inference call to any
@@ -21,11 +21,11 @@ It exists to prove three things:
 
 **The brine signature on a `llm-forge` task_result attests:**
 
-- **Relay fidelity** — "I, this specific forge identity, forwarded the
+- **Relay fidelity.** "I, this specific forge identity, forwarded the
   caller's `task.parameters.messages` to the configured upstream provider
   and received the verbatim response now recorded in `outputs.response`
   (or in `outputs.response_shadow` in shadowed mode)."
-- **Request binding** — `outputs.request_digest` is a SHA-256 over the
+- **Request binding.** `outputs.request_digest` is a SHA-256 over the
   canonical JSON of the relayed request (`model`, `messages`, `max_tokens`,
   `temperature`, `privacy_mode`). Because the digest sits inside the signed
   envelope, the signature links this response to this exact request; a
@@ -35,7 +35,7 @@ It exists to prove three things:
   unsalted so the caller can verify offline, which means anyone holding the
   receipt can CONFIRM a guessed prompt against it. In shadowed deployments
   treat the receipt itself as sensitive.
-- **Receipt integrity** — "The envelope's `outputs` and `provenance` were
+- **Receipt integrity.** "The envelope's `outputs` and `provenance` were
   not modified after I signed it. Any change invalidates the signature."
 - **In `privacy_mode: shadowed` only**, additionally: "Neither the prompt
   text nor the response text appears in the canonical bytes I signed."
@@ -100,7 +100,7 @@ asserts the key does not appear anywhere in the signed envelope.
 **Response `outputs` (shadowed mode):** `prompt_shadow` and
 `response_shadow` replace `response`; the prompt text is not echoed back.
 Each shadow is a `{shadow_id, content_type, abstraction, relevance}`
-dict — see `photophore.shadow.Shadow`.
+dict. See `photophore.shadow.Shadow`.
 
 ## Run it (BYOK, local)
 
@@ -189,7 +189,7 @@ LLM_FORGE_PROVIDER_KEY=<your-0g-key> \
 ## A note on 0G Private Computer specifically
 
 0G PC speaks the OpenAI Chat Completions request/response shape but routes
-through `https://router-api.0g.ai/v1` (NOT `pc.0g.ai/api/v1` — that's the
+through `https://router-api.0g.ai/v1` (NOT `pc.0g.ai/api/v1`, which is the
 dashboard, whose in-browser SDK uses Privy session cookies rather than
 Bearer tokens). External clients use a Bearer-token API key issued via the
 0G dashboard at `https://pc.0g.ai/sdk/dashboard`.
@@ -215,6 +215,6 @@ the provider dashboard for settlement details.
 | Photophore | no dependency | shadowed mode depends on it |
 | Live reference | https://pi.dom.net | not deployed publicly (BYOK local only) |
 
-Both forges share zero code beyond `thermocline-py` imports — the suite's
+Both forges share zero code beyond `thermocline-py` imports. The suite's
 spec-not-framework posture is intentional and exercised by having two
 implementations.

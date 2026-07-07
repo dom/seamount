@@ -3,17 +3,17 @@
 ### A Stateless Compute Forge for Thermocline-Compliant Task and Job Dispatch
 
 **Version:** 0.4.0
-**Status:** RFC — Pre-release, seeking feedback
+**Status:** RFC (pre-release, seeking feedback)
 **License:** MIT
 **Implements:** Thermocline 0.4.0+
 **Works with:** Photophore 0.3.0+
 
 > **Implementation status.** The shipped reference forges are **task-only**.
-> Every section below that is marked **NOT YET IMPLEMENTED (v0.2)** — the job
-> execution surface, runtime isolation model, tool registry, and performance
-> targets — is normative *intent* for future job-capable forges and has no
-> verified implementation in this repo. Do not read those sections as tested
-> behavior.
+> Every section below marked **NOT YET IMPLEMENTED (v0.2)** is normative
+> *intent* for future job-capable forges and has no verified implementation in
+> this repo. That marker covers the job execution surface, runtime isolation
+> model, tool registry, and performance targets. Do not read those sections as
+> tested behavior.
 
 ---
 
@@ -26,13 +26,13 @@ A forge is any Thermocline-compliant node that:
 3. Returns a Thermocline result envelope with a receipt signature
 4. Holds no state between sessions
 
-A forge is defined entirely by what it accepts and what it returns — the Thermocline
-contract. The hardware underneath, the runtimes installed, the network path used
-to reach it — none of these are specified by the contract.
+A forge is defined entirely by what it accepts and what it returns. That is the
+Thermocline contract. The hardware underneath, the runtimes installed, and the
+network path used to reach it are not specified by the contract.
 
 Seamount is the **reference forge implementation**: a local compute server designed
-to run on powerful personal hardware — a desktop, a high-end laptop, a local
-workstation — and serve as the compute backend for one or more sovereign nodes
+to run on powerful personal hardware (a desktop, a high-end laptop, a local
+workstation) and serve as the compute backend for one or more sovereign nodes
 running a policy engine (Photophore or equivalent).
 
 ---
@@ -40,7 +40,7 @@ running a policy engine (Photophore or equivalent).
 ## Reference Implementations
 
 Two reference forges live in this repo; both satisfy the conformance requirements
-below and share no code beyond `thermocline-py` imports — exercising the
+below and share no code beyond `thermocline-py` imports. That exercises the
 "spec, not framework" posture in practice.
 
 | Forge | Task type | Determinism | Receipt attests | Photophore | Live reference |
@@ -50,7 +50,7 @@ below and share no code beyond `thermocline-py` imports — exercising the
 
 `llm-forge` is intentionally a weaker verifiability story than `pi-forge`: the
 signature commits to faithful relay of the call, not to LLM output correctness.
-This caveat is load-bearing — see [`llm-forge/README.md` §"What the signature
+This caveat is load-bearing. See [`llm-forge/README.md` §"What the signature
 does and does not attest"](./llm-forge/README.md).
 
 ---
@@ -58,8 +58,8 @@ does and does not attest"](./llm-forge/README.md).
 ## Design Philosophy
 
 **Stateless by design.** Seamount holds no memory between tasks or jobs. Each
-envelope is processed in isolation. When the result is returned — or when a job
-halts — Seamount discards everything associated with that task or job.
+envelope is processed in isolation. When the result is returned (or when a job
+halts), Seamount discards everything associated with that task or job.
 
 **Dumb by intent.** Seamount does not make policy decisions, does not classify
 content, and does not attempt to infer what it does not need to know. That work
@@ -177,7 +177,7 @@ Receipt signature shape:
 - `TIMEOUT`
 - `UNKNOWN`
 
-**Job halt codes (minimum required) — NOT YET IMPLEMENTED (v0.2), see §6:**
+**Job halt codes (minimum required). NOT YET IMPLEMENTED (v0.2), see §6:**
 - `MANIFEST_TAMPER`
 - `PASSTHROUGH_VIOLATION`
 - `CONTRACT_MISMATCH`
@@ -459,14 +459,14 @@ forges, conformance harness, CI) are tracked in [CHANGELOG.md](./CHANGELOG.md).
   verified behavior
 
 ### 0.3.0
-- Added Forge Conformance Requirements (Normative) section — consolidated universal
+- Added Forge Conformance Requirements (Normative) section, consolidating universal
   forge MUST/SHOULD requirements (validation, signature verify, statelessness,
   privacy fence, job integrity rules, receipt signatures, error/halt codes)
-- Added Runtime Isolation Model (Normative) — isolation levels, shell tool minimum
-  requirements (fs jail, no network, allowlist), plugin requirements
-- Added Performance Targets (Normative targets) — per-operation budgets and end-to-end
+- Added Runtime Isolation Model (Normative) covering isolation levels, shell tool minimum
+  requirements (fs jail, no network, allowlist), and plugin requirements
+- Added Performance Targets (Normative targets) covering per-operation budgets and end-to-end
   overhead targets excluding inference time; benchmarking guidance
-- Added Threat Model section — malicious envelopes, DoS, tool escape, impersonation,
+- Added Threat Model section covering malicious envelopes, DoS, tool escape, impersonation,
   timing side channels; mitigations and residual risk
 - Moved hardware recommendations, Thunderbolt deployment narrative, and naming note
   to Appendix A (non-normative)
@@ -490,7 +490,7 @@ forges, conformance harness, CI) are tracked in [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
-## Appendix A — Non-Normative
+## Appendix A (Non-Normative)
 
 ### Recommended Runtime Stack (Apple Silicon)
 
@@ -507,7 +507,7 @@ The sovereign node authors job manifests; the forge executes them.
 
 ### A Note on Naming
 
-A seamount is an isolated underwater mountain — a site of transformation rising from
+A seamount is an isolated underwater mountain, a site of transformation rising from
 the ocean floor. Hydrothermal vents on seamounts receive mineral-laden seawater,
 run it through pressure and heat, and release the transformed result back into the
 water column. Nothing is stored between events. The seamount does not remember what

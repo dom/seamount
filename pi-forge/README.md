@@ -1,9 +1,9 @@
 # pi-forge
 
-### A Hosted Thermocline-Compliant Compute Forge — Reference Implementation
+### A Hosted Thermocline-Compliant Compute Forge (Reference Implementation)
 
 **Version:** 0.1.0
-**Status:** Reference implementation — MIT licensed
+**Status:** Reference implementation, MIT licensed
 **Implements:** Thermocline 0.4.0+
 **Works with:** Photophore 0.3.0+
 
@@ -15,7 +15,7 @@ pi-forge is the simplest possible Thermocline-compliant compute forge. It receiv
 Thermocline task envelope, computes π to the requested number of digits (max 999), and
 returns a signed Thermocline task result envelope.
 
-Its purpose is not to be useful. Its purpose is to be **correct** — to demonstrate
+Its purpose is not to be useful. Its purpose is to be **correct**. It demonstrates
 every required behavior of a Thermocline-compliant forge in a payload simple enough to
 read in five minutes.
 
@@ -146,13 +146,13 @@ python server.py
 
 Accepts a Thermocline task envelope. Returns a Thermocline task result envelope.
 
-**Request:** `Content-Type: application/json` — Thermocline task envelope body.
+**Request:** `Content-Type: application/json`, with a Thermocline task envelope body.
 
 **Response 200:** Thermocline task result envelope.
 
-**Response 422:** Thermocline error envelope — invalid parameters.
+**Response 422:** Thermocline error envelope, invalid parameters.
 
-**Response 400:** Thermocline error envelope — malformed or unrecognized envelope.
+**Response 400:** Thermocline error envelope, malformed or unrecognized envelope.
 
 **Response 415:** If `Content-Type` is not `application/json`.
 
@@ -217,7 +217,7 @@ pi-forge returns a structured error body for all non-2xx responses:
 ## Privacy Properties
 
 pi-forge holds **no private context**. A well-formed task envelope for this forge
-carries only `digits` in `task.parameters` — a public integer. There is no reason
+carries only `digits` in `task.parameters`, a public integer. There is no reason
 to send private context, and the forge ignores any `context[]` blocks present.
 
 The forge:

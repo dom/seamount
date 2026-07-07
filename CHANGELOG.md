@@ -66,28 +66,28 @@ rejects `none`-scheme envelopes with `UNSIGNED_SCHEME_REJECTED`).
   compliant forge: brine ed25519 signing via the platform secure keystore,
   `init` and `serve` subcommands, `PIFORGE_READY port=<n>` readiness marker
   contractual with Photophore's integration-test harness.
-- `describe-forge` — new tier-1-aware forge that accepts shadow envelopes and
+- `describe-forge`, a new tier-1-aware forge that accepts shadow envelopes and
   returns templated descriptions. `DESCRIBEFORGE_READY` marker.
 - `forge_conformance` cross-suite conformance harness (CONF-01). Validates
   any forge against the 12-item Seamount checklist. Runs against the reference
   forges in CI; can be invoked against third-party impls on demand.
 - 5 AT-E* negative tests under `conformance/at_negative/` (CONF-02):
-  AT-E1 (malicious payload), AT-E2 (resource exhaustion — xfail v0.1),
+  AT-E1 (malicious payload), AT-E2 (resource exhaustion, xfail v0.1),
   AT-E3 (tool escape), AT-E4 (forge impersonation), AT-E5 (timing side channel).
 - `at_coverage.py` per-repo coverage assertion + `ast_lint_no_print.py`
   forbidding `print(` in library code paths (CONF-06).
 
 ### Implemented
 
-- **FORGE-01..05** — Forge bootstrap, brine signing, receipt issuance,
+- **FORGE-01..05.** Forge bootstrap, brine signing, receipt issuance,
   tier-1 shadow handling (describe-forge), conformance harness integration.
-- **Suite-wide CONF-01..08** — Seamount contributes its slice of the
+- **Suite-wide CONF-01..08.** Seamount contributes its slice of the
   suite-wide conformance requirements (FORGE-* surface + AT-E* negative tests).
 
 ### Spec dependencies
 
 - Requires **`thermocline-py` 0.3.1** for the SP-3.3-01..03 envelope-signature
-  invariants — see `thermocline/README.md` §"Identity Provider Interface"
+  invariants. See `thermocline/README.md` §"Identity Provider Interface"
   §"Dispatch Signatures" + §"Receipt Signatures" and
   `thermocline/CHANGELOG.md` §[0.3.1]. Both reference forges sign receipts
   with the `receipt_signature.sig=""` (empty string, not removed)
@@ -102,7 +102,7 @@ rejects `none`-scheme envelopes with `UNSIGNED_SCHEME_REJECTED`).
 
 - Job envelopes + per-step forge invocation (Seamount spec v0.2)
 - Multi-step manifests (v0.2)
-- Per-forge resource limits (v0.2 — AT-E2 size-limit enforcement)
+- Per-forge resource limits (v0.2, AT-E2 size-limit enforcement)
 - Sandboxed forge runtimes (v0.2)
 - Third-party forge certification badge (post-v0.1)
 

@@ -1,4 +1,4 @@
-# Seamount Conformance Harness — Install
+# Seamount Conformance Harness Install Guide
 
 The conformance harness validates any forge against the Seamount spec checklist
 (12 universal forge MUST/SHOULD requirements). It runs against the reference

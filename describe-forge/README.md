@@ -8,7 +8,7 @@
 
 `pi-forge` proved a Thermocline-compliant forge could compute a mathematical
 result. `describe-forge` proves a forge can **describe a shadow** without ever
-seeing the underlying content — the entire FORGE-03 requirement:
+seeing the underlying content. This is the entire FORGE-03 requirement:
 
 - Accept task envelopes with `task.type` in `{shadow.describe, data.compute}`
   and `context[]` containing at least one tier-1 shadow block.

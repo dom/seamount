@@ -104,6 +104,10 @@ def test_default_node_id_matches_keypair_identity(monkeypatch):
     monkeypatch.setenv("LLMFORGE_KEYRING_SERVICE", service)
     monkeypatch.delenv("LLMFORGE_IDENTITY", raising=False)
     monkeypatch.delenv("FORGE_NODE_ID", raising=False)
+    # This test pins the identity/node_id default wiring on the RECEIPT
+    # signing path; the fixture envelope is unsigned, so opt out of dispatch
+    # enforcement (covered by test_dispatch_sig_required.py).
+    monkeypatch.setenv("FORGE_REQUIRE_DISPATCH_SIG", "0")
 
     from thermocline.identity import BrineProvider
 

@@ -42,11 +42,17 @@ def validate_task_envelope(
     expected_version: str,
     *,
     keyring_service: Optional[str] = None,
+    require_dispatch_sig: bool = True,
 ) -> str:
     """Validate a Thermocline task envelope.
 
     Returns the envelope_id on success. Raises EnvelopeError on any
     validation failure.
+
+    ``require_dispatch_sig=True`` (the default) refuses any envelope without
+    a verified brine ``dispatch_signature`` (SIGNATURE_INVALID, HTTP 401),
+    including the ``key_scheme: none`` downgrade. Pass ``False`` only for
+    explicit dev-mode forges (``FORGE_KEY_SCHEME=none``).
     """
     if not isinstance(body, dict):
         raise EnvelopeError("MALFORMED_ENVELOPE", "Envelope must be a JSON object")
@@ -83,66 +89,57 @@ def validate_task_envelope(
             f"llm-forge accepts: {sorted(SUPPORTED_TASK_TYPES)}",
         )
 
+    # Signature verification. The forge's configuration, not the envelope,
+    # decides whether a signature is required; envelope content must never
+    # select an unauthenticated path.
     sig_block = body.get("dispatch_signature")
-    if sig_block:
-        scheme = sig_block.get("key_scheme", "none")
-        if scheme == "none":
-            pass
-        elif scheme == "brine":
-            _verify_brine(body, sig_block, keyring_service=keyring_service)
-        else:
+    if require_dispatch_sig:
+        if not isinstance(sig_block, dict):
             raise EnvelopeError(
                 "SIGNATURE_INVALID",
-                f"Unrecognized key_scheme: {scheme!r}",
+                "dispatch_signature is required by this forge",
+                http_status=401,
             )
+        # allow_unsigned=False: thermocline raises SchemeError
+        # (UNSIGNED_SCHEME_REJECTED) for key_scheme=none, which maps to
+        # SIGNATURE_INVALID below. Unknown schemes and tampered or missing
+        # signature bytes are refused the same way.
+        _verify_dispatch(body, keyring_service=keyring_service)
+    elif isinstance(sig_block, dict):
+        scheme = sig_block.get("key_scheme", "none")
+        if scheme == "none":
+            pass  # dev mode only: unsigned accepted when not required
+        else:
+            _verify_dispatch(body, keyring_service=keyring_service)
 
     return body["envelope_id"]
 
 
-def _verify_brine(
+def _verify_dispatch(
     body: dict,
-    sig_block: dict,
     *,
     keyring_service: Optional[str] = None,
 ) -> None:
-    """Verify an ed25519 (brine) dispatch signature via thermocline.identity."""
-    from thermocline.identity import Signature
-    from thermocline.schemes import KeyScheme
+    """Verify the dispatch signature via :func:`thermocline.verify_envelope`.
+
+    SP-3.3 wire protocol (thermocline 0.4.0): the verifier canonicalizes the
+    envelope with ``dispatch_signature.sig`` reset to ``""`` and checks the
+    ed25519 signature against the signer's registered public key.
+
+    Every failure mode (unsigned scheme, unknown scheme, unregistered
+    signer, bad hex, tamper) surfaces as SIGNATURE_INVALID / HTTP 401 with
+    a generic message that never echoes envelope-supplied content.
+    """
+    from thermocline import verify_envelope
     from forge_identity import get_verifier
 
-    node_id = sig_block.get("node_id") or sig_block.get("signer_identity") or ""
-    sig_hex = sig_block.get("sig") or sig_block.get("bytes_hex") or ""
-    if not sig_hex:
-        raise EnvelopeError(
-            "SIGNATURE_INVALID",
-            "dispatch_signature.sig is empty for key_scheme=brine",
-            http_status=401,
-        )
-    try:
-        sig_bytes = bytes.fromhex(sig_hex)
-    except (TypeError, ValueError) as exc:
-        raise EnvelopeError(
-            "SIGNATURE_INVALID",
-            f"dispatch_signature.sig is not valid hex: {exc}",
-            http_status=401,
-        ) from exc
-    sig = Signature(
-        scheme=KeyScheme.BRINE,
-        bytes_=sig_bytes,
-        signer_identity=node_id,
-    )
     verifier = get_verifier(keyring_service)
-    body_for_verify = copy.deepcopy(body)
-    sig_block_for_verify = body_for_verify.get("dispatch_signature")
-    if isinstance(sig_block_for_verify, dict):
-        sig_block_for_verify.pop("sig", None)
-        sig_block_for_verify.pop("bytes_hex", None)
     try:
-        receipt = verifier.verify(envelope=body_for_verify, signature=sig)
+        receipt = verify_envelope(body, verifier, allow_unsigned=False)
     except Exception as exc:
         raise EnvelopeError(
             "SIGNATURE_INVALID",
-            f"dispatch_signature verification failed: {exc}",
+            "dispatch_signature verification failed",
             http_status=401,
         ) from exc
     if receipt is None:

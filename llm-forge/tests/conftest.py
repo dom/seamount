@@ -58,6 +58,10 @@ def initialized_forge(monkeypatch):
     monkeypatch.setenv("LLMFORGE_KEYRING_SERVICE", service)
     monkeypatch.setenv("LLMFORGE_IDENTITY", identity)
     monkeypatch.setenv("FORGE_NODE_ID", identity)
+    # These tests exercise relay/receipt behavior with unsigned dev
+    # envelopes; dispatch-signature enforcement has its own dedicated suite
+    # (test_dispatch_sig_required.py).
+    monkeypatch.setenv("FORGE_REQUIRE_DISPATCH_SIG", "0")
     from thermocline.identity import BrineProvider
 
     provider = BrineProvider(keyring_service=service)

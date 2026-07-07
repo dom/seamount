@@ -100,8 +100,11 @@ def handle_task():
             require_dispatch_sig=FORGE_REQUIRE_DISPATCH_SIG,
         )
     except EnvelopeError as e:
+        # body may be any JSON value (list, string, number); only a dict has
+        # an envelope_id to echo. (llm-forge guard, applied suite-wide.)
         return jsonify(build_error_envelope(
-            body.get("envelope_id"), e.code, e.message
+            body.get("envelope_id") if isinstance(body, dict) else None,
+            e.code, e.message
         )), e.http_status
 
     # Extract and validate parameters.

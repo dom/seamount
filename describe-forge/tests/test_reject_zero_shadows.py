@@ -33,3 +33,15 @@ def test_reject_empty_context(initialized_forge):
     assert r.status_code == 400
     body_out = r.get_json()
     assert body_out["error"]["code"] == "UNSUPPORTED_TASK_TYPE"
+
+
+def test_non_object_json_body_returns_structured_error(initialized_forge):
+    """MEDIUM review fix: a JSON array body must yield MALFORMED_ENVELOPE, not 500."""
+    _, _, app = initialized_forge
+    tc = app.test_client()
+    r = tc.post("/task", json=[1, 2, 3])
+    assert r.status_code == 400
+    body_out = r.get_json()
+    assert body_out["type"] == "task_error"
+    assert body_out["envelope_id"] is None
+    assert body_out["error"]["code"] == "MALFORMED_ENVELOPE"

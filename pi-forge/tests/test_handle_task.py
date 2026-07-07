@@ -111,3 +111,15 @@ def test_handle_task_brine_sig_is_real(initialized_forge):
     assert isinstance(sig_hex, str)
     assert len(sig_hex) == 128  # 64 bytes * 2 hex chars
     int(sig_hex, 16)  # must be valid hex
+
+
+def test_non_object_json_body_returns_structured_error(initialized_forge):
+    """MEDIUM review fix: a JSON array body must yield MALFORMED_ENVELOPE, not 500."""
+    service, identity, app = initialized_forge
+    tc = app.test_client()
+    r = tc.post("/task", json=[1, 2, 3])
+    assert r.status_code == 400
+    body = r.get_json()
+    assert body["type"] == "task_error"
+    assert body["envelope_id"] is None
+    assert body["error"]["code"] == "MALFORMED_ENVELOPE"

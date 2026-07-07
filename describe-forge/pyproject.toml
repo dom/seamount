@@ -10,7 +10,7 @@ requires-python = ">=3.11"
 license = { text = "MIT" }
 dependencies = [
     "flask>=3.0",
-    "thermocline>=0.3.1",
+    "thermocline>=0.4.0",
 ]
 
 [project.optional-dependencies]

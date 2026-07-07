@@ -2,11 +2,18 @@
 
 ### A Stateless Compute Forge for Thermocline-Compliant Task and Job Dispatch
 
-**Version:** 0.3.0-draft
+**Version:** 0.4.0
 **Status:** RFC — Pre-release, seeking feedback
 **License:** MIT
-**Implements:** Thermocline 0.3.0+
+**Implements:** Thermocline 0.4.0+
 **Works with:** Photophore 0.3.0+
+
+> **Implementation status.** The shipped reference forges are **task-only**.
+> Every section below that is marked **NOT YET IMPLEMENTED (v0.2)** — the job
+> execution surface, runtime isolation model, tool registry, and performance
+> targets — is normative *intent* for future job-capable forges and has no
+> verified implementation in this repo. Do not read those sections as tested
+> behavior.
 
 ---
 
@@ -90,8 +97,11 @@ examples) are non-normative and appear in Appendix A.
 - The forge MUST NOT log content. Operational logs may include: envelope_id/job_id,
   timestamps, task types, tool IDs, status codes, and selected runtime identifiers.
 - The forge MUST enforce `manifest.constraints.may_access[]` (job envelopes) at the
-  tool routing layer.
+  tool routing layer. *NOT YET IMPLEMENTED (v0.2): job envelopes are not accepted
+  by the shipped task-only forges, so `may_access[]` enforcement has no
+  implementation yet.*
 - Any attempt to use a tool not in `may_access[]` MUST halt with `PRIVACY_VIOLATION`.
+  *NOT YET IMPLEMENTED (v0.2).*
 
 ### 4) Statelessness
 
@@ -118,6 +128,12 @@ examples) are non-normative and appear in Appendix A.
 - The forge MUST return a structured error envelope (never unstructured stdout).
 
 ### 6) Job Execution
+
+> **NOT YET IMPLEMENTED (v0.2).** No shipped forge accepts job envelopes; none
+> of the halt codes below (`MANIFEST_TAMPER`, `PASSTHROUGH_VIOLATION`,
+> `CONTRACT_MISMATCH`, `STEP_AMBIGUOUS`) is emitted by any code in this repo.
+> The conformance harness scores this item as an explicit skip for task-only
+> forges.
 
 The forge MUST implement the job integrity rules defined by Thermocline 0.2.0+:
 
@@ -161,7 +177,7 @@ Receipt signature shape:
 - `TIMEOUT`
 - `UNKNOWN`
 
-**Job halt codes (minimum required):**
+**Job halt codes (minimum required) — NOT YET IMPLEMENTED (v0.2), see §6:**
 - `MANIFEST_TAMPER`
 - `PASSTHROUGH_VIOLATION`
 - `CONTRACT_MISMATCH`
@@ -198,6 +214,9 @@ Custom task types (reverse-domain notation) are supported via plugins.
 
 ## Tool Registry (Job Envelopes)
 
+> **NOT YET IMPLEMENTED (v0.2).** The shipped forges are task-only and expose
+> no tool registry; `TOOL_UNAVAILABLE` is not emitted by any code in this repo.
+
 For `job` envelopes, steps declare a `tool` ID. Seamount maintains a tool registry
 mapping tool IDs to local runtime adapters.
 
@@ -207,6 +226,10 @@ reaches that step MUST halt with `TOOL_UNAVAILABLE`.
 ---
 
 ## Job Execution Engine
+
+> **NOT YET IMPLEMENTED (v0.2).** This engine does not exist in the shipped
+> reference forges; the sequence below is the normative design for future
+> job-capable forges.
 
 ### Execution Sequence
 
@@ -247,6 +270,11 @@ On any halt condition, the forge MUST:
 
 ## Runtime Isolation Model (Normative)
 
+> **NOT YET IMPLEMENTED (v0.2).** The reference forges run their single
+> in-process runtime at L0 (pure compute / HTTP relay) and expose no `shell`
+> tool or plugin system; the isolation levels below are unenforced normative
+> intent for job-capable forges.
+
 Seamount may route work to multiple runtimes, some of which are inherently risky
 (e.g., `shell`, untrusted plugins). The forge MUST provide isolation boundaries
 commensurate with the declared tool.
@@ -282,6 +310,11 @@ If the forge exposes a `shell` tool ID, it MUST:
 ---
 
 ## Performance Targets (Normative)
+
+> **NOT YET IMPLEMENTED (v0.2).** No shipped forge implements `forge-bench`,
+> and none of the budgets below has been measured or verified against the
+> reference implementations. Treat this section as unvalidated targets, not
+> observed performance.
 
 These are **targets** for forge overhead exclusive of model inference time.
 They exist to prevent the security/audit chain from becoming the bottleneck.
@@ -402,6 +435,28 @@ See [docs/adr/index.md](docs/adr/index.md) for the full index.
 ---
 
 ## Changelog
+
+This is the **spec document** changelog. Implementation releases (reference
+forges, conformance harness, CI) are tracked in [CHANGELOG.md](./CHANGELOG.md).
+
+### 0.4.0
+- Security hardening release; requires Thermocline 0.4.0+ (`verify_envelope`
+  with explicit `allow_unsigned` opt-in; `none`-scheme envelopes rejected by
+  default)
+- Signature verification (§2) is now the enforced default in all reference
+  forges: envelopes with a missing, `none`-downgraded, or tampered
+  `dispatch_signature` are rejected with `SIGNATURE_INVALID`
+- Statelessness (§4) rewritten to claim only what the runtime can enforce
+  (buffer release, no persistence, no cross-request cache; explicit
+  zeroization caveat)
+- Envelope handling hardened: structured errors for non-object JSON bodies,
+  request body size limit (default 1 MiB), non-reflective error envelopes,
+  loopback bind by default
+- Marked the not-yet-implemented normative surface explicitly: Job Execution
+  (§6, halt codes), `may_access[]` privacy-fence enforcement, Tool Registry,
+  Job Execution Engine, Runtime Isolation Model, and Performance Targets are
+  labeled **NOT YET IMPLEMENTED (v0.2)** so the draft spec cannot be read as
+  verified behavior
 
 ### 0.3.0
 - Added Forge Conformance Requirements (Normative) section — consolidated universal

@@ -4,7 +4,7 @@
 
 **Version:** 0.1.0
 **Status:** Reference implementation — MIT licensed
-**Implements:** Thermocline 0.3.0+
+**Implements:** Thermocline 0.4.0+
 **Works with:** Photophore 0.3.0+
 
 ---

@@ -4,6 +4,60 @@ All notable changes to Seamount are documented here. The format is a lite
 variant of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); semantic
 versioning per [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-07-07
+
+Security-hardening release following external review. Requires
+**`thermocline-py` >= 0.4.0** (`verify_envelope(..., allow_unsigned=False)`
+rejects `none`-scheme envelopes with `UNSIGNED_SCHEME_REJECTED`).
+
+### Security
+
+- **All three forges (`pi-forge`, `llm-forge`, `describe-forge`) require a
+  verified brine `dispatch_signature` by default** (HIGH). Envelope content
+  can no longer select an unauthenticated path: missing signatures,
+  `key_scheme: none` downgrades, unknown signers, and tampered signatures are
+  all rejected with `SIGNATURE_INVALID` (HTTP 401). Dev-mode opt-out is the
+  explicit `FORGE_REQUIRE_DISPATCH_SIG=0`.
+- `llm-forge` receipt signatures now bind to the request (request digest in
+  the signed envelope), closing receipt-replay across requests (MED).
+- Request body size limit (`FORGE_MAX_CONTENT_LENGTH`, default 1 MiB) with a
+  structured 413; error envelopes no longer reflect attacker-controlled
+  content (LOW). Resolves the v0.1 "AT-E2 size-limit enforcement deferred"
+  known limitation; the AT-E2 `xfail` is retired in favor of live tests.
+- Forges bind `127.0.0.1` by default; non-loopback binding is an explicit
+  `FORGE_BIND_HOST` opt-in (LOW).
+- Structured `MALFORMED_ENVELOPE` errors for non-object JSON bodies instead
+  of unstructured 500s (MED).
+
+### Changed
+
+- **Conformance harness is behavioral** (MED): checklist items 1/2/7 can no
+  longer silently skip (a required-item skip scores FAIL); item 2 runs three
+  live negatives (missing signature, `none` downgrade, self-hosted
+  tampered-signature fixture) that must each return `SIGNATURE_INVALID`;
+  unknown-task-type and wrong-version cases assert exact error codes; the
+  harness signs positive-path fixtures with an ephemeral sovereign key
+  (`--sovereign-register-service`). A forge that accepts an unsigned envelope
+  now FAILS conformance.
+- `conformance/at_negative/` AT-E1/E2/E4 are live behavioral tests against
+  real forge subprocesses instead of file-existence checks.
+- Statelessness spec text (README §4) scoped to enforceable claims (buffer
+  release, no persistence, no cross-request cache) with an explicit
+  zeroization caveat.
+- Spec doc marks the entire job surface (`may_access[]`, job halt codes,
+  tool registry, job execution engine, runtime isolation model) and the
+  Performance Targets as **NOT YET IMPLEMENTED (v0.2)**.
+
+### Added
+
+- `llm-forge` CI coverage: unit tests, print lint, and a conformance matrix
+  leg driven by `forge_conformance --role llm-forge` against a canned
+  OpenAI-compatible mock upstream (`forge_conformance._mock_upstream`).
+
+### Dependencies
+
+- All forge and conformance packages pin `thermocline>=0.4.0`.
+
 ## [0.1.0] - 2026-05-13
 
 ### Added

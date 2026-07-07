@@ -14,3 +14,7 @@ dist/
 .planning/
 memory/
 AGENTS.md
+
+# Engineer-local audit trail (never shipped or committed)
+CHANGE.md
+**/CHANGE.md

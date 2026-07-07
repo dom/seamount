@@ -43,7 +43,31 @@ _FORGE_PATHS: dict[str, dict[str, str]] = {
         "identity": "describe-forge",
         "env_prefix": "DESCRIBEFORGE",
     },
+    "llm-forge": {
+        "dir": str(_SEAMOUNT_ROOT / "llm-forge"),
+        "module": "llm_forge",
+        "namespace_prefix": "seamount.llmforge",
+        "identity": "llm-forge",
+        "env_prefix": "LLMFORGE",
+    },
 }
+
+
+def _run_mock_upstream(port: int) -> None:
+    """Child-process target: canned OpenAI-compatible upstream for llm-forge."""
+    import os as _os
+    import sys as _sys
+
+    devnull = open(_os.devnull, "w")
+    _sys.stdout = devnull
+    _sys.stderr = devnull
+
+    import socket as _socket
+    _socket.getfqdn = lambda name="": name or "localhost"
+
+    from forge_conformance._mock_upstream import create_app
+
+    create_app().run(host="127.0.0.1", port=port, debug=False, use_reloader=False)
 
 
 def _free_port() -> int:
@@ -92,6 +116,33 @@ def conformance_forge(
     env["FORGE_NODE_ID"] = meta["identity"]
     env["FORGE_PORT"] = str(port)
 
+    # llm-forge needs an upstream to exercise its positive path; spawn the
+    # canned mock upstream and point the forge at it.
+    mock_upstream_proc = None
+    if role == "llm-forge":
+        import multiprocessing
+
+        upstream_port = _free_port()
+        mock_upstream_proc = multiprocessing.Process(
+            target=_run_mock_upstream, args=(upstream_port,), daemon=True
+        )
+        mock_upstream_proc.start()
+        upstream_deadline = time.monotonic() + 30.0
+        upstream_ready = False
+        while time.monotonic() < upstream_deadline:
+            try:
+                if httpx.get(
+                    f"http://127.0.0.1:{upstream_port}/health", timeout=0.5
+                ).status_code == 200:
+                    upstream_ready = True
+                    break
+            except Exception:  # noqa: BLE001
+                time.sleep(0.1)
+        if not upstream_ready:
+            mock_upstream_proc.terminate()
+            raise RuntimeError("mock upstream did not become ready")
+        env["LLM_FORGE_BASE_URL"] = f"http://127.0.0.1:{upstream_port}/v1"
+        env["LLM_FORGE_PROVIDER_LABEL"] = "conformance-mock"
     # Bind to loopback only. Default 0.0.0.0 triggers werkzeug's
     # `socket.gethostbyname(socket.gethostname())` in display_addresses,
     # which hangs ~70s on macOS arm64 GH runners between "Debug mode: off"
@@ -211,6 +262,11 @@ def conformance_forge(
             keyring.delete_password(test_ns, meta["identity"])
         except Exception:  # noqa: BLE001
             pass
+        if mock_upstream_proc is not None:
+            mock_upstream_proc.terminate()
+            mock_upstream_proc.join(timeout=5)
+            if mock_upstream_proc.is_alive():
+                mock_upstream_proc.kill()
 
 
 @pytest.fixture(autouse=True)

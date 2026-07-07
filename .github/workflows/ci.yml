@@ -32,7 +32,7 @@ jobs:
           python-version: "3.11"
       - name: Print lint (CONF-06)
         working-directory: seamount
-        run: python tools/ast_lint_no_print.py pi-forge/ describe-forge/ conformance/
+        run: python tools/ast_lint_no_print.py pi-forge/ describe-forge/ llm-forge/ conformance/
       - name: AT coverage (seamount = AT-E*)
         working-directory: seamount
         run: python tools/at_coverage.py
@@ -46,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        forge: [pi-forge, describe-forge]
+        forge: [pi-forge, describe-forge, llm-forge]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -76,7 +76,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        forge: [pi-forge, describe-forge]
+        forge: [pi-forge, describe-forge, llm-forge]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -128,11 +128,26 @@ jobs:
         env:
           FORGE_BIND_HOST: 127.0.0.1
         run: |
-          MODULE=${{ matrix.forge == 'pi-forge' && 'pi_forge' || 'describe_forge' }}
+          MODULE=$(echo "${{ matrix.forge }}" | tr '-' '_')
+          # llm-forge relays to an OpenAI-compatible upstream; point it at
+          # the harness's canned mock so no provider key is needed in CI.
+          if [ "${{ matrix.forge }}" = "llm-forge" ]; then
+            python -m forge_conformance._mock_upstream --port 5109 &
+            UPSTREAM_PID=$!
+            for _ in $(seq 1 60); do
+              if curl -sf http://127.0.0.1:5109/health >/dev/null; then
+                echo "mock upstream ready (pid=$UPSTREAM_PID)"
+                break
+              fi
+              sleep 0.5
+            done
+            export LLM_FORGE_BASE_URL=http://127.0.0.1:5109/v1
+            export LLM_FORGE_PROVIDER_LABEL=conformance-mock
+          fi
           python -m "$MODULE" init --keyring-service seamount.ci-test
           python -m "$MODULE" serve --keyring-service seamount.ci-test --port 5100 &
           FORGE_PID=$!
-          trap "kill $FORGE_PID 2>/dev/null || true" EXIT
+          trap "kill $FORGE_PID ${UPSTREAM_PID:-} 2>/dev/null || true" EXIT
           for _ in $(seq 1 60); do
             if curl -sf http://127.0.0.1:5100/pubkey >/dev/null; then
               echo "forge ready (pid=$FORGE_PID)"
@@ -140,9 +155,12 @@ jobs:
             fi
             sleep 0.5
           done
+          # --sovereign-register-service lets the harness sign positive-path
+          # fixtures against the signature-requiring forge (same host).
           python -m forge_conformance \
             --target http://127.0.0.1:5100 \
             --role ${{ matrix.forge }} \
+            --sovereign-register-service seamount.ci-test \
             --output json
 
   forge-conformance-harness-tests:
@@ -175,12 +193,14 @@ jobs:
           pip install -e thermocline/thermocline/python/
           pip install -e seamount/pi-forge/
           pip install -e seamount/describe-forge/
+          pip install -e seamount/llm-forge/
           pip install -e seamount/conformance/[dev]
           pip install flask
-      - name: Init both forges (for harness test fixtures)
+      - name: Init forges (for harness test fixtures)
         run: |
           python -m pi_forge init --keyring-service seamount.piforge || true
           python -m describe_forge init --keyring-service seamount.describeforge || true
-      - name: Run forge_conformance own tests
+          python -m llm_forge init --keyring-service seamount.llmforge || true
+      - name: Run forge_conformance own tests + at_negative behavioral tests
         working-directory: seamount/conformance
-        run: pytest tests/ -q
+        run: pytest -q

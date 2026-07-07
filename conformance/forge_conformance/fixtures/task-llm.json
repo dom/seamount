@@ -1,0 +1,24 @@
+{
+  "thermocline": "0.3.1",
+  "type": "task",
+  "envelope_id": "c0f0a1b2-3333-4333-8333-000000000003",
+  "issued_at": "2026-07-07T00:00:00Z",
+  "issuer": "conformance-sovereign",
+  "task": {
+    "type": "data.inference.text",
+    "instruction": "Run text inference.",
+    "parameters": {
+      "model": "conformance-mock-model",
+      "messages": [{"role": "user", "content": "Reply with a short canned response."}],
+      "max_tokens": 32,
+      "temperature": 0.0,
+      "privacy_mode": "verbatim"
+    }
+  },
+  "context": [],
+  "result_policy": {
+    "persist_to_shared": [],
+    "return_only": [],
+    "strip_before_persist": []
+  }
+}

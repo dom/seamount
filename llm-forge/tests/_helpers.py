@@ -46,7 +46,7 @@ def example_inference_envelope(
     return {
         "thermocline": "0.3.1",
         "type": "task",
-        "envelope_id": f"task-llm-{uuid.uuid4()}",
+        "envelope_id": str(uuid.uuid4()),
         "issued_at": "2026-05-16T12:00:00Z",
         "issuer": "test-sovereign",
         "task": {

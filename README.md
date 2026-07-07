@@ -95,11 +95,21 @@ examples) are non-normative and appear in Appendix A.
 
 ### 4) Statelessness
 
-- On success, the forge MUST zero and release all in-memory state before returning.
-- On halt/failure, the forge MUST zero and release all in-memory state **before**
-  assembling the result envelope.
-- The forge MUST NOT maintain a persistent cache of prior envelopes, results, or
-  intermediate step outputs.
+- The forge MUST NOT persist any task/job input, intermediate value, or output
+  beyond the lifetime of the request (no database, no spool files, no history).
+- The forge MUST NOT maintain a cross-request cache of prior envelopes, results,
+  or intermediate step outputs; each envelope is processed in isolation.
+- On success, halt, or failure, the forge MUST release all per-request buffers
+  so they become unreachable and eligible for garbage collection before the
+  response (or halt result) is returned.
+- Zeroization caveat: in managed runtimes with immutable string/bytes types
+  (including the reference forges' Python implementation), overwriting freed
+  memory cannot be guaranteed; copies of request data may persist in process
+  memory until collected and reused. A forge MUST NOT be advertised as
+  performing guaranteed memory zeroization unless its runtime can actually
+  enforce it. Deployments that need stronger erasure guarantees should rely on
+  process-per-request isolation or full-memory-encryption at the platform
+  layer.
 
 ### 5) Task Execution
 
@@ -215,7 +225,8 @@ reaches that step MUST halt with `TOOL_UNAVAILABLE`.
 8. Assemble job_result envelope
 9. Sign with receipt signature
 10. Return job_result to issuer
-11. Zero all in-memory job state
+11. Release all in-memory job state (see §4 Statelessness for what "release"
+    guarantees per runtime)
 ```
 
 Steps with no `depends_on` entries may execute in parallel. Steps with
@@ -227,7 +238,7 @@ A halted job is a dead job.
 
 On any halt condition, the forge MUST:
 1. Stop execution immediately
-2. Zero all in-memory job state
+2. Release all in-memory job state (see §4 Statelessness)
 3. Assemble a `job_result` envelope with `status: halted` and `halt_reason`
 4. Sign and return the halt result
 5. Retain nothing

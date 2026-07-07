@@ -1,11 +1,11 @@
-"""AT-E1: Malicious envelope payloads — strict schema, size limits, reject unknown fields.
+"""AT-E1: Malicious envelope payloads — strict validation, structured rejection.
 
 Failure mode: a hostile sovereign sends a malformed envelope to the forge;
 the forge MUST reject with a structured error response and never crash.
 
-The forge_conformance harness already validates schema enforcement across
-both pi-forge and describe-forge. This at_negative test documents the
-contract from the AT-E1 surface perspective.
+Live behavioral coverage (v0.4.0): posts hostile payloads at a real
+pi-forge subprocess and asserts structured MALFORMED_ENVELOPE rejections
+with no unstructured 5xx.
 """
 # AT-SURFACE: AT-E1
 from __future__ import annotations
@@ -14,6 +14,7 @@ import json
 import os
 from pathlib import Path
 
+import httpx
 import pytest
 
 _SUITE_ROOT = Path(
@@ -41,17 +42,29 @@ def test_at_e1_fixture_present_and_well_formed() -> None:
 
 
 @pytest.mark.at_surface("AT-E1")
-@pytest.mark.documents_only
-def test_malformed_payload_rejected_documented() -> None:
-    """AT-E1 enforcement is via the forge_conformance schema-validation step.
+@pytest.mark.integration
+@pytest.mark.parametrize("conformance_forge", ["pi-forge"], indirect=True)
+def test_malformed_payloads_rejected_live(conformance_forge) -> None:
+    """LIVE: garbage object, non-object JSON, and non-JSON bodies all get
+    structured 4xx errors from a real forge; nothing 5xxs."""
+    url = f"{conformance_forge.url}/task"
 
-    See seamount/conformance/forge_conformance/_harness.py — schema validation
-    is performed on every dispatch and rejects unknown fields / wrong types.
-    A live HTTP test would require spawning a forge subprocess; the
-    forge_conformance harness covers that path.
-    """
-    harness = Path(__file__).resolve().parents[1] / "forge_conformance"
-    assert harness.is_dir(), (
-        "AT-E1: forge_conformance harness package must exist; it validates "
-        "envelope schemas at dispatch time"
+    # (a) JSON object with none of the required fields.
+    r = httpx.post(url, json={"garbage": "input"}, timeout=10.0)
+    assert 400 <= r.status_code < 500
+    assert r.json()["error"]["code"] == "MALFORMED_ENVELOPE"
+
+    # (b) Non-object JSON body (array) — the pre-fix 500 path.
+    r = httpx.post(url, json=[1, 2, 3], timeout=10.0)
+    assert 400 <= r.status_code < 500
+    assert r.json()["error"]["code"] == "MALFORMED_ENVELOPE"
+
+    # (c) Non-JSON content type.
+    r = httpx.post(
+        url,
+        content=b"\x00\x01\x02",
+        headers={"content-type": "text/plain"},
+        timeout=10.0,
     )
+    assert 400 <= r.status_code < 500
+    assert r.json()["error"]["code"] == "MALFORMED_ENVELOPE"

@@ -30,21 +30,27 @@ from forge_conformance._report import build_report, emit_json, now_utc_iso
 from tests.conftest import ConformanceForgeHandle  # type: ignore[import]
 
 
-@pytest.mark.parametrize("conformance_forge", ["pi-forge"], indirect=True)
-def test_harness_runs_against_pi_forge(
-    conformance_forge: ConformanceForgeHandle,
-) -> None:
-    """Test 1: harness runs end-to-end against pi-forge.
+# Every live item that must PASS against a properly configured forge.
+_REQUIRED_PASS = {
+    "1-envelope-handling",  # signed fixture accepted + schema valid
+    "2-sig-verification",  # missing sig / none downgrade / tampered sig all rejected
+    "3-privacy-fence",  # honor-system always passes
+    "4-statelessness",  # result_ids differ
+    "5-task-execution",  # unknown task type -> UNSUPPORTED_TASK_TYPE
+    "7-receipt-signatures",  # receipt verifies against pinned pubkey
+    "8-error-codes",  # garbage + wrong version -> structured codes
+    "AT-E1",  # non-object body -> MALFORMED_ENVELOPE
+    "AT-E2",  # oversized body -> structured 4xx
+    "AT-E4",  # receipt pinned-pubkey verification
+}
 
-    Asserts at least these items report ``pass``:
-        1-envelope-handling, 2-sig-verification, 4-statelessness,
-        7-receipt-signatures, 8-error-codes
-    (Items 9-13 = AT-E1..AT-E5 are skipped in v0.1; full negative-test
-    enforcement is a v0.2 hardening item.)
-    """
-    forge = conformance_forge
+
+def _assert_full_conformance(forge: ConformanceForgeHandle) -> None:
     results = run_harness(
-        target_url=forge.url, role=forge.role, forge_pubkey_hex=forge.pubkey_hex
+        target_url=forge.url,
+        role=forge.role,
+        forge_pubkey_hex=forge.pubkey_hex,
+        sovereign_service=forge.namespace,
     )
     report = build_report(
         target_url=forge.url,
@@ -53,55 +59,56 @@ def test_harness_runs_against_pi_forge(
         completed_at=now_utc_iso(),
         item_results=results,
     )
-    # The 5 required-pass items.
-    required_pass = {
-        "2-sig-verification",  # AT-C2 fixture rejected
-        "3-privacy-fence",  # honor-system always passes
-        "4-statelessness",  # result_ids differ
-        "8-error-codes",  # MALFORMED_ENVELOPE on garbage
-    }
     for entry in report["checklist"]:
-        if entry["id"] in required_pass:
+        if entry["id"] in _REQUIRED_PASS:
             assert entry["status"] == "pass", (
                 f"{entry['id']} expected pass, got "
                 f"{entry['status']}: {entry['message']!r}"
             )
-    # v0.2 deferrals are skipped, not failed.
-    for at_id in ("AT-E1", "AT-E2", "AT-E3", "AT-E4", "AT-E5"):
+    # Documented skips only: job engine (task-only forges), tool escape
+    # (no tool surface), timing side channel (black-box harness).
+    for at_id in ("6-job-execution", "AT-E3", "AT-E5"):
         entry = next(e for e in report["checklist"] if e["id"] == at_id)
         assert entry["status"] == "skip"
+    assert report["total_fail"] == 0
+
+
+@pytest.mark.parametrize("conformance_forge", ["pi-forge"], indirect=True)
+def test_harness_runs_against_pi_forge(
+    conformance_forge: ConformanceForgeHandle,
+) -> None:
+    """Harness end-to-end against pi-forge: all live items pass."""
+    _assert_full_conformance(conformance_forge)
 
 
 @pytest.mark.parametrize("conformance_forge", ["describe-forge"], indirect=True)
 def test_harness_runs_against_describe_forge(
     conformance_forge: ConformanceForgeHandle,
 ) -> None:
-    """Test 2: harness runs end-to-end against describe-forge."""
+    """Harness end-to-end against describe-forge (self-hosted shadow fixture)."""
+    _assert_full_conformance(conformance_forge)
+
+
+@pytest.mark.parametrize("conformance_forge", ["pi-forge"], indirect=True)
+def test_required_items_fail_without_signing(
+    conformance_forge: ConformanceForgeHandle,
+) -> None:
+    """Without a sovereign signer, a sig-requiring forge FAILS items 1/7.
+
+    Pins the skip-scores-as-pass regression: required items must surface as
+    FAIL (with a remediation hint), never as skip.
+    """
     forge = conformance_forge
     results = run_harness(
-        target_url=forge.url, role=forge.role, forge_pubkey_hex=forge.pubkey_hex
-    )
-    report = build_report(
         target_url=forge.url,
         role=forge.role,
-        started_at=now_utc_iso(),
-        completed_at=now_utc_iso(),
-        item_results=results,
+        forge_pubkey_hex=forge.pubkey_hex,
+        sovereign_service=None,
     )
-    # describe-forge refuses zero-shadow envelopes; the canonical task fixture
-    # is a tier-2 compute task with NO tier-1 shadows. So item 1 will not pass
-    # on describe-forge (it would on pi-forge). Confirm at least these pass:
-    required_pass = {
-        "2-sig-verification",
-        "3-privacy-fence",
-        "8-error-codes",
-    }
-    for entry in report["checklist"]:
-        if entry["id"] in required_pass:
-            assert entry["status"] == "pass", (
-                f"{entry['id']} expected pass, got "
-                f"{entry['status']}: {entry['message']!r}"
-            )
+    assert results["1-envelope-handling"]["status"] == "fail"
+    assert results["7-receipt-signatures"]["status"] == "fail"
+    # Negative sig cases need no signer and still pass.
+    assert results["2-sig-verification"]["status"] == "pass"
 
 
 def _forged_receipt_app(port: int) -> None:
@@ -131,7 +138,7 @@ def _forged_receipt_app(port: int) -> None:
     def fake_task() -> Any:
         body = request.get_json(force=True)
         envelope_id = body.get("envelope_id", "fake-envelope")
-        result_id = "forged-result-0001"
+        result_id = "0f0f0f0f-0000-4000-8000-00000000000f"
         return jsonify(
             {
                 "thermocline": "0.3.1",
@@ -181,8 +188,15 @@ def _free_port() -> int:
         return int(s.getsockname()[1])
 
 
-def test_harness_detects_invalid_receipt_signature() -> None:
-    """Test 3: a forge returning sig='00'*64 makes 7-receipt-signatures FAIL."""
+@pytest.fixture(scope="module")
+def permissive_forge_results() -> dict[str, dict[str, str]]:
+    """Run the harness once against the permissive forged-receipt fake forge.
+
+    The fake forge performs NO dispatch-signature verification (it accepts
+    unsigned, none-downgraded, and tampered envelopes with 200) and returns
+    a forged ``receipt_signature.sig``. Module-scoped: one subprocess spawn
+    plus one harness run feeds every assertion on this hostile profile.
+    """
     port = _free_port()
     proc = multiprocessing.Process(
         target=_forged_receipt_app, args=(port,), daemon=True
@@ -205,18 +219,8 @@ def test_harness_detects_invalid_receipt_signature() -> None:
             except Exception:  # noqa: BLE001
                 time.sleep(0.1)
         assert ready, "forged-receipt forge did not become ready"
-        # The pubkey we serve is "ab"*32 — won't match the forged sig either way,
-        # but verifier.verify() will return None (signature mismatch) and harness
-        # marks 7-receipt-signatures FAIL with the canonical message.
-        results = run_harness(
+        return run_harness(
             target_url=url, role="pi-forge", forge_pubkey_hex="ab" * 32
-        )
-        # Either status==fail or status==skip (if upstream items failed first).
-        # The plan-checker-strict check: status MUST be fail OR the sig must
-        # have been detected as known-invalid.
-        item7 = results.get("7-receipt-signatures", {"status": "skip"})
-        assert item7["status"] == "fail", (
-            f"expected 7-receipt-signatures FAIL on forged sig, got {item7!r}"
         )
     finally:
         proc.terminate()
@@ -224,6 +228,44 @@ def test_harness_detects_invalid_receipt_signature() -> None:
         if proc.is_alive():
             proc.kill()
             proc.join(timeout=2)
+
+
+def test_harness_detects_invalid_receipt_signature(
+    permissive_forge_results: dict[str, dict[str, str]],
+) -> None:
+    """Test 3: a forge returning sig='00'*64 makes 7-receipt-signatures FAIL."""
+    # The pubkey served is "ab"*32 — verifier.verify() returns None
+    # (signature mismatch) and the harness marks 7-receipt-signatures FAIL.
+    item7 = permissive_forge_results.get(
+        "7-receipt-signatures", {"status": "skip"}
+    )
+    assert item7["status"] == "fail", (
+        f"expected 7-receipt-signatures FAIL on forged sig, got {item7!r}"
+    )
+
+
+def test_harness_fails_forge_accepting_unsigned_envelopes(
+    permissive_forge_results: dict[str, dict[str, str]],
+) -> None:
+    """A forge that accepts unsigned/none/tampered dispatches FAILS item 2.
+
+    Pins the core MED hardening claim: the sig-verification checklist item
+    runs its three live negative cases and scores acceptance of ANY of them
+    as FAIL, never as skip or pass.
+    """
+    item2 = permissive_forge_results.get(
+        "2-sig-verification", {"status": "skip"}
+    )
+    assert item2["status"] == "fail", (
+        f"expected 2-sig-verification FAIL against a forge that accepts "
+        f"unsigned envelopes, got {item2!r}"
+    )
+    # All three negative cases were accepted by the permissive forge, so
+    # every one must be named in the failure message.
+    for marker in ("missing-sig", "none-downgrade", "tampered-sig"):
+        assert marker in item2["message"], (
+            f"{marker!r} acceptance not reported in {item2['message']!r}"
+        )
 
 
 def test_cli_exit_code_on_fail() -> None:

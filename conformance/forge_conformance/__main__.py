@@ -1,8 +1,17 @@
-"""CLI entry: ``python -m forge_conformance --target URL --role pi-forge|describe-forge``.
+"""CLI entry: ``python -m forge_conformance --target URL --role <forge>``.
+
+Roles: ``pi-forge``, ``describe-forge``.
 
 Fetches the target forge's pubkey via ``GET /pubkey``, runs the 13-item
 checklist, prints the structured report, and exits 0 (all pass), 1
 (any fail), or 2 (bootstrap error — e.g., /pubkey unreachable).
+
+Since forges require verified brine dispatch signatures by default, pass
+``--sovereign-register-service <namespace>`` (the forge's keystore
+namespace) when the harness runs on the same host as the forge: the
+harness generates an ephemeral sovereign keypair, TOFU-registers its
+verify key there, and signs the positive-path fixtures. Without it, the
+signature-requiring positive items fail with a hint.
 """
 from __future__ import annotations
 
@@ -33,6 +42,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--conformance-root", default=None)
     parser.add_argument("--schema-root", default=None)
+    parser.add_argument(
+        "--sovereign-register-service",
+        default=None,
+        help=(
+            "Forge keystore namespace to TOFU-register an ephemeral "
+            "sovereign verify key into, enabling signed positive-path "
+            "fixtures (same-host runs only)."
+        ),
+    )
     args = parser.parse_args(argv)
 
     # Fetch pubkey for receipt verification.
@@ -58,6 +76,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         forge_pubkey_hex=pubkey_hex,
         conformance_root=conformance_root,
         schema_root=schema_root,
+        sovereign_service=args.sovereign_register_service,
     )
     completed = now_utc_iso()
     report = build_report(

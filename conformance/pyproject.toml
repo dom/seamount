@@ -30,6 +30,9 @@ forge-conformance = "forge_conformance.__main__:main"
 where = ["."]
 include = ["forge_conformance*"]
 
+[tool.setuptools.package-data]
+forge_conformance = ["fixtures/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests", "at_negative"]
 markers = [

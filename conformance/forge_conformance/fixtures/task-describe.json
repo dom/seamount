@@ -1,0 +1,27 @@
+{
+  "thermocline": "0.3.1",
+  "type": "task",
+  "envelope_id": "c0f0a1b2-2222-4222-8222-000000000002",
+  "issued_at": "2026-07-07T00:00:00Z",
+  "issuer": "conformance-sovereign",
+  "task": {
+    "type": "shadow.describe",
+    "instruction": "Describe the tier-1 shadows in context.",
+    "parameters": {}
+  },
+  "context": [
+    {
+      "tier": 1,
+      "shadow": {
+        "shadow_id": "conformance-shadow-1",
+        "content_type": "document",
+        "relevance": 0.8
+      }
+    }
+  ],
+  "result_policy": {
+    "persist_to_shared": [],
+    "return_only": [],
+    "strip_before_persist": []
+  }
+}

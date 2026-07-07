@@ -1,6 +1,6 @@
 """CLI entry: ``python -m forge_conformance --target URL --role <forge>``.
 
-Roles: ``pi-forge``, ``describe-forge``.
+Roles: ``pi-forge``, ``describe-forge``, ``llm-forge``.
 
 Fetches the target forge's pubkey via ``GET /pubkey``, runs the 13-item
 checklist, prints the structured report, and exits 0 (all pass), 1
@@ -12,6 +12,11 @@ namespace) when the harness runs on the same host as the forge: the
 harness generates an ephemeral sovereign keypair, TOFU-registers its
 verify key there, and signs the positive-path fixtures. Without it, the
 signature-requiring positive items fail with a hint.
+
+For ``--role llm-forge`` the harness sends ``Authorization: Bearer`` with
+``--auth-bearer`` (or a placeholder); point the forge at
+``python -m forge_conformance._mock_upstream`` for a keyless canned
+upstream.
 """
 from __future__ import annotations
 
@@ -35,7 +40,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--role",
         required=True,
-        choices=["pi-forge", "describe-forge"],
+        choices=["pi-forge", "describe-forge", "llm-forge"],
     )
     parser.add_argument(
         "--output", default="human", choices=["human", "json"]
@@ -50,6 +55,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             "sovereign verify key into, enabling signed positive-path "
             "fixtures (same-host runs only)."
         ),
+    )
+    parser.add_argument(
+        "--auth-bearer",
+        default=None,
+        help="Bearer token sent on /task requests (llm-forge role).",
     )
     args = parser.parse_args(argv)
 
@@ -77,6 +87,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         conformance_root=conformance_root,
         schema_root=schema_root,
         sovereign_service=args.sovereign_register_service,
+        auth_bearer=args.auth_bearer,
     )
     completed = now_utc_iso()
     report = build_report(

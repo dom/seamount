@@ -89,6 +89,14 @@ def test_harness_runs_against_describe_forge(
     _assert_full_conformance(conformance_forge)
 
 
+@pytest.mark.parametrize("conformance_forge", ["llm-forge"], indirect=True)
+def test_harness_runs_against_llm_forge(
+    conformance_forge: ConformanceForgeHandle,
+) -> None:
+    """Harness end-to-end against llm-forge relaying to the mock upstream."""
+    _assert_full_conformance(conformance_forge)
+
+
 @pytest.mark.parametrize("conformance_forge", ["pi-forge"], indirect=True)
 def test_required_items_fail_without_signing(
     conformance_forge: ConformanceForgeHandle,

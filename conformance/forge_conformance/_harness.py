@@ -62,6 +62,7 @@ _FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 _ROLE_FIXTURES: dict[str, str] = {
     "pi-forge": "task-pi.json",
     "describe-forge": "task-describe.json",
+    "llm-forge": "task-llm.json",
 }
 
 # Items that MUST NOT skip: a skip here is scored as FAIL.
@@ -162,6 +163,7 @@ def run_harness(
     schema_root: Path | None = None,
     timeout_s: float = 10.0,
     sovereign_service: str | None = None,
+    auth_bearer: str | None = None,
 ) -> dict[str, dict[str, str]]:
     """Run the 13-item checklist (8 conformance + 5 AT-E) against the target forge URL.
 
@@ -174,6 +176,8 @@ def run_harness(
     fixture = _load_role_fixture(role)
 
     headers: dict[str, str] = {}
+    if role == "llm-forge":
+        headers["Authorization"] = f"Bearer {auth_bearer or 'conformance-placeholder-key'}"
 
     signer: _SovereignSigner | None = None
     if sovereign_service:

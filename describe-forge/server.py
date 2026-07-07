@@ -153,8 +153,18 @@ def health():
     })
 
 
+def resolve_bind_host() -> str:
+    """Bind loopback by default; non-loopback (0.0.0.0) is explicit opt-in.
+
+    LOW review fix: the forge must not be network-reachable unless the
+    operator sets FORGE_BIND_HOST (e.g. 0.0.0.0 behind a reverse proxy).
+    """
+    return os.environ.get("FORGE_BIND_HOST", "127.0.0.1")
+
+
 if __name__ == "__main__":
-    print(f"describe-forge listening on 127.0.0.1:{FORGE_PORT}")
+    host = resolve_bind_host()
+    print(f"describe-forge listening on {host}:{FORGE_PORT}")
     print(f"  node_id    : {FORGE_NODE_ID}")
     print(f"  key_scheme : {FORGE_KEY_SCHEME}")
-    app.run(host="0.0.0.0", port=FORGE_PORT)
+    app.run(host=host, port=FORGE_PORT)

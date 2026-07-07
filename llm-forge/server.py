@@ -320,10 +320,16 @@ def models():
     return jsonify({"models": _current_models()})
 
 
+def resolve_bind_host() -> str:
+    """Bind loopback by default; non-loopback (0.0.0.0) is explicit opt-in."""
+    return os.environ.get("FORGE_BIND_HOST", "127.0.0.1")
+
+
 if __name__ == "__main__":
-    print(f"llm-forge listening on 127.0.0.1:{FORGE_PORT}")
+    host = resolve_bind_host()
+    print(f"llm-forge listening on {host}:{FORGE_PORT}")
     print(f"  node_id        : {FORGE_NODE_ID}")
     print(f"  key_scheme     : {FORGE_KEY_SCHEME}")
     print(f"  provider_label : {_current_provider_label()}")
     print(f"  base_url       : {_current_base_url() or '(unset)'}")
-    app.run(host=os.environ.get("FORGE_BIND_HOST", "127.0.0.1"), port=FORGE_PORT)
+    app.run(host=host, port=FORGE_PORT)

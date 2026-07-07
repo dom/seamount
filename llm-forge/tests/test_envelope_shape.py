@@ -151,3 +151,16 @@ def test_default_node_id_matches_keypair_identity(monkeypatch):
             _keyring.delete_password(service, default_identity)
         except Exception:
             pass
+
+
+def test_bind_host_defaults_to_loopback(monkeypatch):
+    """LOW review fix: never bind 0.0.0.0 unless explicitly opted in."""
+    import importlib
+    import sys
+    monkeypatch.delenv("FORGE_BIND_HOST", raising=False)
+    if "server" in sys.modules:
+        importlib.reload(sys.modules["server"])
+    import server
+    assert server.resolve_bind_host() == "127.0.0.1"
+    monkeypatch.setenv("FORGE_BIND_HOST", "0.0.0.0")
+    assert server.resolve_bind_host() == "0.0.0.0"

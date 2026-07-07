@@ -124,14 +124,19 @@ python server.py
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `FORGE_NODE_ID` | `pi-forge-local` | Node identity declared in receipt signatures |
-| `FORGE_KEY_SCHEME` | `none` | Key scheme for signatures (`none` = no cryptographic signing; use `brine` for ed25519) |
+| `FORGE_KEY_SCHEME` | `brine` | Key scheme for signatures (`brine` = ed25519 via the platform keystore; `none` = dev mode, no cryptographic signing) |
+| `FORGE_REQUIRE_DISPATCH_SIG` | on when `FORGE_KEY_SCHEME=brine` | When on, envelopes without a verified brine `dispatch_signature` are rejected with `SIGNATURE_INVALID` (including `key_scheme: none` downgrades). Set `0` only for dev |
 | `FORGE_PORT` | `5100` | Port to bind |
+| `FORGE_BIND_HOST` | `127.0.0.1` | Bind host. Non-loopback (`0.0.0.0`) is an explicit opt-in; run behind a reverse proxy |
+| `FORGE_MAX_CONTENT_LENGTH` | `1048576` | Maximum request body size in bytes; larger bodies get a structured 413 |
+| `PIFORGE_KEYRING_SERVICE` | `seamount.piforge` | Keystore namespace for the forge keypair |
+| `PIFORGE_IDENTITY` | `pi-forge` | Keystore entry name |
 
-> **Note on `key_scheme: none`:** The reference implementation defaults to `none`
-> to eliminate key management overhead for development and testing. `none` is a
-> valid declared scheme per the Thermocline spec — honest about the absence of a
-> signature guarantee. For production use, configure `FORGE_KEY_SCHEME=brine` and
-> provide a keypair via the identity provider interface.
+> **Note on `key_scheme: none`:** the production default is `brine` (run
+> `pi-forge init` once to create the keypair). `FORGE_KEY_SCHEME=none` remains
+> supported for development and regression replay: receipts carry `sig: null`
+> (honest absence of guarantee) and dispatch-signature enforcement defaults
+> off. A `brine` forge never accepts an envelope-declared `key_scheme: none`.
 
 ---
 
@@ -161,9 +166,10 @@ Returns forge health and identity.
 {
   "status": "ok",
   "forge": "pi-forge",
-  "thermocline_version": "0.3.0",
+  "thermocline_version": "0.3.1",
   "node_id": "pi-forge-local",
-  "key_scheme": "none",
+  "key_scheme": "brine",
+  "require_dispatch_sig": true,
   "max_digits": 999
 }
 ```
@@ -186,7 +192,7 @@ pi-forge returns a structured error body for all non-2xx responses:
 
 ```json
 {
-  "thermocline": "0.3.0",
+  "thermocline": "0.3.1",
   "type": "task_error",
   "envelope_id": "<echoed from request, or null if unparseable>",
   "error": {
@@ -203,8 +209,8 @@ pi-forge returns a structured error body for all non-2xx responses:
 | `INVALID_PARAMETERS` | 422 | Missing, wrong-type, or out-of-range `digits` |
 | `UNSUPPORTED_VERSION` | 400 | Unrecognized `thermocline` version in envelope |
 | `UNSUPPORTED_TASK_TYPE` | 400 | `task.type` is not `data.compute` |
-| `MALFORMED_ENVELOPE` | 400 | Envelope is not valid JSON or is missing required fields |
-| `SIGNATURE_INVALID` | 400 | `dispatch_signature` present but fails verification |
+| `MALFORMED_ENVELOPE` | 400/413 | Envelope is not valid JSON, is missing required fields, or exceeds the size limit |
+| `SIGNATURE_INVALID` | 401 | `dispatch_signature` missing, downgraded to `none`, or fails verification (when required, the default) |
 
 ---
 
@@ -234,7 +240,7 @@ Use this to verify any Thermocline forge implementation, not just pi-forge.
 | Validates envelope JSON structure | ✅ |
 | Rejects unrecognized `thermocline` versions | ✅ |
 | Rejects unsupported task types | ✅ |
-| Verifies `dispatch_signature` when key_scheme ≠ `none` | ✅ (key_scheme: none by default) |
+| Requires a verified `dispatch_signature` (brine config, the default) | ✅ (`FORGE_REQUIRE_DISPATCH_SIG=0` is the dev opt-out) |
 | Returns `task_result` with correct `envelope_id` | ✅ |
 | Returns `receipt_signature` block | ✅ |
 | Returns `provenance.tiers_present` | ✅ |

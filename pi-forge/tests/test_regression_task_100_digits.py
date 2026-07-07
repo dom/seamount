@@ -34,7 +34,9 @@ def test_regression_task_100_digits_equivalent():
     body = json.loads(FIXTURE.read_text())
 
     # Validate (fixture declares 0.3.0; SUPPORTED_VERSIONS includes 0.3.0).
-    envelope_id = validate_task_envelope(body, "0.3.0")
+    # The v0.1 fixture is unsigned (key_scheme=none), so replay it through
+    # the explicit dev-mode path.
+    envelope_id = validate_task_envelope(body, "0.3.0", require_dispatch_sig=False)
     assert envelope_id == body["envelope_id"]
 
     digits = body["task"]["parameters"]["digits"]

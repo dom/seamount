@@ -16,6 +16,9 @@ Env vars:
     FORGE_NODE_ID          (default "pi-forge-local")
     FORGE_KEY_SCHEME       (default "brine"; FORGE_KEY_SCHEME=none retains
                             dev-mode behavior with null sigs)
+    FORGE_REQUIRE_DISPATCH_SIG (default on when FORGE_KEY_SCHEME=brine;
+                            when on, envelopes without a verified brine
+                            dispatch_signature are rejected SIGNATURE_INVALID)
     FORGE_PORT             (default 5100)
     PIFORGE_KEYRING_SERVICE (default "seamount.piforge")
     PIFORGE_IDENTITY        (default "pi-forge")
@@ -44,6 +47,22 @@ FORGE_NODE_ID = os.environ.get("FORGE_NODE_ID", "pi-forge-local")
 # `FORGE_KEY_SCHEME=none` is still supported for dev / regression replay
 # (envelope.py's _sign_receipt leaves sig=None in that mode).
 FORGE_KEY_SCHEME = os.environ.get("FORGE_KEY_SCHEME", "brine")
+
+
+def _env_flag(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
+# HIGH-severity review fix: a forge keyed for brine REQUIRES a verified brine
+# dispatch_signature on every envelope. Envelope content (missing block,
+# key_scheme=none) can no longer select an unauthenticated path. Explicit
+# FORGE_REQUIRE_DISPATCH_SIG=0 is the dev-mode opt-out.
+FORGE_REQUIRE_DISPATCH_SIG = _env_flag(
+    "FORGE_REQUIRE_DISPATCH_SIG", FORGE_KEY_SCHEME == "brine"
+)
 FORGE_PORT = int(os.environ.get("FORGE_PORT", "5100"))
 MAX_DIGITS = 999
 THERMOCLINE_VERSION = "0.3.1"
@@ -72,10 +91,13 @@ def handle_task():
 
     service = _current_keyring_service()
 
-    # Validate envelope structure (verifies dispatch_signature when present).
+    # Validate envelope structure and verify the dispatch signature.
     try:
         envelope_id = validate_task_envelope(
-            body, THERMOCLINE_VERSION, keyring_service=service
+            body,
+            THERMOCLINE_VERSION,
+            keyring_service=service,
+            require_dispatch_sig=FORGE_REQUIRE_DISPATCH_SIG,
         )
     except EnvelopeError as e:
         return jsonify(build_error_envelope(
@@ -163,6 +185,7 @@ def health():
         "thermocline_version": THERMOCLINE_VERSION,
         "node_id": FORGE_NODE_ID,
         "key_scheme": FORGE_KEY_SCHEME,
+        "require_dispatch_sig": FORGE_REQUIRE_DISPATCH_SIG,
         "max_digits": MAX_DIGITS,
     })
 

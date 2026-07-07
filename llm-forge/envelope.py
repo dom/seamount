@@ -37,6 +37,19 @@ class EnvelopeError(Exception):
         self.http_status = http_status
 
 
+def _clip(value, limit: int = 64) -> str:
+    """Repr a caller-supplied value, truncated to a fixed length.
+
+    LOW review fix: error envelopes reflect attacker input (version,
+    task type); cap the reflected length so error responses cannot be
+    used as an amplification or log-stuffing vector.
+    """
+    text = repr(value)
+    if len(text) > limit:
+        text = text[:limit] + "...(truncated)"
+    return text
+
+
 def validate_task_envelope(
     body: Any,
     expected_version: str,
@@ -63,14 +76,14 @@ def validate_task_envelope(
     if version not in SUPPORTED_VERSIONS:
         raise EnvelopeError(
             "UNSUPPORTED_VERSION",
-            f"Unsupported Thermocline version: {version!r}. "
+            f"Unsupported Thermocline version: {_clip(version)}. "
             f"Supported: {sorted(SUPPORTED_VERSIONS)}",
         )
 
     if body.get("type") != "task":
         raise EnvelopeError(
             "UNSUPPORTED_TASK_TYPE",
-            f"Expected envelope type 'task', got {body.get('type')!r}",
+            f"Expected envelope type 'task', got {_clip(body.get('type'))}",
         )
 
     for field in ("envelope_id", "issued_at", "issuer"):
@@ -85,7 +98,7 @@ def validate_task_envelope(
     if task_type not in SUPPORTED_TASK_TYPES:
         raise EnvelopeError(
             "UNSUPPORTED_TASK_TYPE",
-            f"Unsupported task type: {task_type!r}. "
+            f"Unsupported task type: {_clip(task_type)}. "
             f"llm-forge accepts: {sorted(SUPPORTED_TASK_TYPES)}",
         )
 

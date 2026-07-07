@@ -29,6 +29,10 @@ def initialized_forge(monkeypatch):
     # FORGE_NODE_ID also needs to match the signer identity for self-signed
     # receipts in tests (server uses FORGE_NODE_ID as the responder).
     monkeypatch.setenv("FORGE_NODE_ID", identity)
+    # These tests exercise the receipt-signing side with unsigned dev
+    # envelopes; dispatch-signature enforcement has its own dedicated suite
+    # (test_dispatch_sig_required.py).
+    monkeypatch.setenv("FORGE_REQUIRE_DISPATCH_SIG", "0")
     provider = BrineProvider(keyring_service=service)
     provider.generate(identity=identity)
     import importlib

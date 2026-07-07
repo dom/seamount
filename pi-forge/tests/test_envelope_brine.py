@@ -3,7 +3,8 @@
 Behaviors under test:
     1.  test_verify_dispatch_signature_brine_valid
     2.  test_verify_dispatch_signature_brine_invalid
-    3.  test_verify_dispatch_signature_none_passes_when_dev_mode
+    3.  test_verify_dispatch_signature_none_rejected_by_default
+        (+ explicit dev-mode opt-out variant)
     4.  test_sign_receipt_brine_produces_valid_sig
     5.  test_sign_receipt_uses_canonicalize
     7.  test_init_idempotent_in_keystore
@@ -90,9 +91,10 @@ def test_verify_dispatch_signature_brine_valid(ephemeral_keyring_service):
             "policy_hash": None,
             "shadows_generated": [],
             "timestamp": "2026-05-11T00:00:00Z",
-            # "sig" intentionally omitted: signing input must NOT include the
-            # signature field. The forge's _verify_brine strips the sig before
-            # canonicalizing, so both sides see the same bytes.
+            # SP-3.3-01: the signer canonicalizes with sig set to the empty
+            # string (NOT removed); thermocline.verify_envelope reconstructs
+            # the same bytes on the forge side.
+            "sig": "",
         }
     )
     sig = signer_provider.sign(envelope=body, signer_identity="alice-node")
@@ -127,6 +129,7 @@ def test_verify_dispatch_signature_brine_invalid(ephemeral_keyring_service):
             "policy_hash": None,
             "shadows_generated": [],
             "timestamp": "2026-05-11T00:00:00Z",
+            "sig": "",
         }
     )
     sig = signer_provider.sign(envelope=body, signer_identity="alice-node")
@@ -148,8 +151,12 @@ def test_verify_dispatch_signature_brine_invalid(ephemeral_keyring_service):
 # Test 3
 
 
-def test_verify_dispatch_signature_none_passes_when_dev_mode():
-    """key_scheme="none" → no verification, no exception (dev mode preserved)."""
+def test_verify_dispatch_signature_none_rejected_by_default():
+    """key_scheme="none" is a downgrade attack when a signature is required.
+
+    Replaces the pre-hardening test that codified none-downgrade-accept:
+    the default validate path now refuses unsigned envelopes outright.
+    """
     body = _minimal_task_envelope(
         dispatch_sig={
             "key_scheme": "none",
@@ -160,7 +167,27 @@ def test_verify_dispatch_signature_none_passes_when_dev_mode():
             "sig": None,
         }
     )
-    envelope_id = validate_task_envelope(body, "0.3.1")
+    with pytest.raises(EnvelopeError) as excinfo:
+        validate_task_envelope(body, "0.3.1")
+    assert excinfo.value.code == "SIGNATURE_INVALID"
+    assert excinfo.value.http_status == 401
+
+
+def test_verify_dispatch_signature_none_passes_only_with_explicit_optout():
+    """Dev mode requires the explicit require_dispatch_sig=False opt-out."""
+    body = _minimal_task_envelope(
+        dispatch_sig={
+            "key_scheme": "none",
+            "node_id": "any",
+            "policy_hash": None,
+            "shadows_generated": [],
+            "timestamp": "2026-05-11T00:00:00Z",
+            "sig": None,
+        }
+    )
+    envelope_id = validate_task_envelope(
+        body, "0.3.1", require_dispatch_sig=False
+    )
     assert envelope_id == body["envelope_id"]
 
 

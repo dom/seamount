@@ -136,3 +136,47 @@ def test_bind_host_defaults_to_loopback(monkeypatch):
     assert server.resolve_bind_host() == "127.0.0.1"
     monkeypatch.setenv("FORGE_BIND_HOST", "0.0.0.0")
     assert server.resolve_bind_host() == "0.0.0.0"
+
+
+def test_oversized_request_rejected_structured(initialized_forge, monkeypatch):
+    """LOW review fix: bodies over FORGE_MAX_CONTENT_LENGTH get a structured 413."""
+    import importlib
+    import sys
+    monkeypatch.setenv("FORGE_MAX_CONTENT_LENGTH", "1024")
+    importlib.reload(sys.modules["server"])
+    import server
+    tc = server.app.test_client()
+    big = _example_task_envelope()
+    big["task"]["instruction"] = "x" * 4096
+    r = tc.post("/task", json=big)
+    assert r.status_code == 413
+    body = r.get_json()
+    assert body["type"] == "task_error"
+    assert body["error"]["code"] == "MALFORMED_ENVELOPE"
+
+
+def test_error_envelope_caps_reflected_version(initialized_forge):
+    """LOW review fix: attacker-supplied version strings are clipped in errors."""
+    service, identity, app = initialized_forge
+    tc = app.test_client()
+    env = _example_task_envelope()
+    env["thermocline"] = "v" * 5000
+    r = tc.post("/task", json=env)
+    assert r.status_code == 400
+    body = r.get_json()
+    assert body["error"]["code"] == "UNSUPPORTED_VERSION"
+    assert "v" * 100 not in body["error"]["message"]
+    assert len(body["error"]["message"]) < 300
+
+
+def test_error_envelope_caps_reflected_task_type(initialized_forge):
+    service, identity, app = initialized_forge
+    tc = app.test_client()
+    env = _example_task_envelope()
+    env["task"]["type"] = "t" * 5000
+    r = tc.post("/task", json=env)
+    assert r.status_code == 400
+    body = r.get_json()
+    assert body["error"]["code"] == "UNSUPPORTED_TASK_TYPE"
+    assert "t" * 100 not in body["error"]["message"]
+    assert len(body["error"]["message"]) < 300

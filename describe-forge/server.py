@@ -16,6 +16,7 @@ test_mixed_tier_ignore_inline.py plants a magic string and asserts absence.
 """
 import os
 from flask import Flask, request, jsonify
+from werkzeug.exceptions import RequestEntityTooLarge
 
 from envelope import (
     validate_task_envelope,
@@ -55,6 +56,24 @@ FORGE_REQUIRE_DISPATCH_SIG = _env_flag(
     "FORGE_REQUIRE_DISPATCH_SIG", FORGE_KEY_SCHEME == "brine"
 )
 FORGE_PORT = int(os.environ.get("FORGE_PORT", "5200"))
+
+# LOW review fix (AT-E2 surface): bound the request body size before JSON
+# parsing. Werkzeug rejects larger bodies with 413, which the errorhandler
+# below converts into a structured task_error envelope.
+FORGE_MAX_CONTENT_LENGTH = int(
+    os.environ.get("FORGE_MAX_CONTENT_LENGTH", str(1024 * 1024))
+)
+app.config["MAX_CONTENT_LENGTH"] = FORGE_MAX_CONTENT_LENGTH
+
+
+@app.errorhandler(413)
+def _payload_too_large(_exc):
+    return jsonify(build_error_envelope(
+        None, "MALFORMED_ENVELOPE",
+        "request body exceeds the configured size limit "
+        f"({FORGE_MAX_CONTENT_LENGTH} bytes)",
+    )), 413
+
 THERMOCLINE_VERSION = "0.3.1"
 
 
@@ -73,6 +92,8 @@ def handle_task():
                                             "Content-Type must be application/json")), 415
     try:
         body = request.get_json(force=True)
+    except RequestEntityTooLarge:
+        raise  # handled by the 413 errorhandler (structured envelope)
     except Exception:
         return jsonify(build_error_envelope(None, "MALFORMED_ENVELOPE",
                                             "Request body is not valid JSON")), 400

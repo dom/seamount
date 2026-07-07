@@ -199,8 +199,10 @@ Calls are settled on-chain against the calling account's 0G balance: a
 the account behind the API key has no funds. Top up via the 0G dashboard
 before the round-trip can complete. The forge's response in that case is
 a structured `task_error` envelope with `code: UPSTREAM_PROVIDER_ERROR`
-that quotes 0G's verbatim error — the relay-fidelity contract holds even
-on the error path.
+and a generic message carrying only the exception class name. The raw
+upstream error text is intentionally NOT echoed to the caller (it can
+contain request fragments, internal hostnames, or key material); check
+the provider dashboard for settlement details.
 
 ## Relationship to `pi-forge`
 

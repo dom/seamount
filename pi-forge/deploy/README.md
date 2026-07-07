@@ -203,7 +203,7 @@ sudo systemctl restart pi-forge
 
 ## Known upstream nits
 
-- **`server.py:174` defaults to `host="0.0.0.0"`.** Should default to
-  `127.0.0.1` for safety. The systemd `FORGE_BIND_HOST=127.0.0.1` env
-  override is sufficient for v0.1; a v0.1.x patch tag for this alone would
-  be release overhead. Promote to v0.2.
+- **Resolved (0.4.0): `server.py` now defaults to `127.0.0.1`.** Binding
+  `0.0.0.0` requires an explicit `FORGE_BIND_HOST` opt-in. The systemd
+  `FORGE_BIND_HOST=127.0.0.1` line below is now redundant but kept as an
+  explicit statement of intent.

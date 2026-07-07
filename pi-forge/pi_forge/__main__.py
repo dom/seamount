@@ -70,9 +70,10 @@ def cmd_serve(args: argparse.Namespace) -> int:
     from server import app
 
     port = args.port or int(os.environ.get("FORGE_PORT", "5100"))
-    # FORGE_BIND_HOST defaults to 0.0.0.0 (production behavior). Set to
-    # 127.0.0.1 in test fixtures.
-    host = os.environ.get("FORGE_BIND_HOST", "0.0.0.0")
+    # FORGE_BIND_HOST defaults to loopback. Binding non-loopback (0.0.0.0)
+    # is an explicit operator opt-in, ideally behind a reverse proxy.
+    from server import resolve_bind_host
+    host = resolve_bind_host()
     # Skip slow DNS during Flask startup on macOS arm64 GH runners. Two
     # werkzeug paths call into the resolver: display_addresses does
     # gethostbyname(gethostname()) when host is 0.0.0.0 (~35s on the

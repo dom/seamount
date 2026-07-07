@@ -22,6 +22,10 @@ def initialized_forge(monkeypatch):
     monkeypatch.setenv("DESCRIBEFORGE_KEYRING_SERVICE", service)
     monkeypatch.setenv("DESCRIBEFORGE_IDENTITY", identity)
     monkeypatch.setenv("FORGE_NODE_ID", identity)
+    # These tests exercise describe/receipt behavior with unsigned dev
+    # envelopes; dispatch-signature enforcement has its own dedicated suite
+    # (test_dispatch_sig_required.py).
+    monkeypatch.setenv("FORGE_REQUIRE_DISPATCH_SIG", "0")
     provider = BrineProvider(keyring_service=service)
     provider.generate(identity=identity)
     for mod in ("forge_identity", "server"):

@@ -25,11 +25,23 @@ It exists to prove three things:
   caller's `task.parameters.messages` to the configured upstream provider
   and received the verbatim response now recorded in `outputs.response`
   (or in `outputs.response_shadow` in shadowed mode)."
+- **Request binding** — `outputs.request_digest` is a SHA-256 over the
+  canonical JSON of the relayed request (`model`, `messages`, `max_tokens`,
+  `temperature`, `privacy_mode`). Because the digest sits inside the signed
+  envelope, the signature links this response to this exact request; a
+  signed response cannot be replayed as the answer to a different question.
+  Verifiers recompute the digest from the request they dispatched
+  (`tests/test_request_binding.py`). Caveat: the digest is deterministic and
+  unsalted so the caller can verify offline, which means anyone holding the
+  receipt can CONFIRM a guessed prompt against it. In shadowed deployments
+  treat the receipt itself as sensitive.
 - **Receipt integrity** — "The envelope's `outputs` and `provenance` were
   not modified after I signed it. Any change invalidates the signature."
 - **In `privacy_mode: shadowed` only**, additionally: "Neither the prompt
   text nor the response text appears in the canonical bytes I signed."
-  Enforced structurally by `tests/test_shadow_mode.py`.
+  (`outputs.request_digest` is a hash of the prompt, not the prompt; see
+  the confirmation caveat above.) Enforced structurally by
+  `tests/test_shadow_mode.py`.
 
 **The signature does NOT attest:**
 
@@ -81,8 +93,8 @@ verbatim to the upstream provider and never persists it.
 `tests/test_relay_fidelity.py::test_byok_key_not_persisted_anywhere`
 asserts the key does not appear anywhere in the signed envelope.
 
-**Response `outputs` (verbatim mode):** `response`, `model`,
-`finish_reason`, `tokens_in`, `tokens_out`, `provider`,
+**Response `outputs` (verbatim mode):** `response`, `request_digest`,
+`model`, `finish_reason`, `tokens_in`, `tokens_out`, `provider`,
 `provider_request_id`, optional `provider_attestation`.
 
 **Response `outputs` (shadowed mode):** `prompt_shadow` and

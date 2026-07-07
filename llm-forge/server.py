@@ -37,6 +37,7 @@ from envelope import (
     EnvelopeError,
     build_error_envelope,
     build_task_result,
+    compute_request_digest,
     validate_task_envelope,
 )
 from forge_identity import (
@@ -226,8 +227,17 @@ def handle_task():
             f"upstream provider call failed: {exc}",
         )), 502
 
-    # Build outputs per the privacy mode the caller selected.
+    # Build outputs per the privacy mode the caller selected. The signed
+    # receipt commits to the exact request via outputs.request_digest, so
+    # the signature links this response to this request (review MED-5).
     outputs: dict = {
+        "request_digest": compute_request_digest(
+            model=model,
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            privacy_mode=privacy_mode,
+        ),
         "model": result.model,
         "finish_reason": result.finish_reason,
         "tokens_in": result.tokens_in,

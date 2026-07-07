@@ -150,6 +150,44 @@ def _verify_dispatch(
         )
 
 
+def compute_request_digest(
+    *,
+    model: str,
+    messages: list,
+    max_tokens: Optional[int],
+    temperature: Optional[float],
+    privacy_mode: str,
+) -> str:
+    """Commit the receipt to the exact request the forge relayed.
+
+    SHA-256 over the canonical JSON (thermocline.canonical.canonicalize) of
+    the request parameters. Recorded as ``outputs.request_digest`` so the
+    receipt signature covers it: without this binding, a signed response
+    could be replayed as the answer to a different question.
+
+    Verifiers recompute the digest from the request they dispatched.
+    Deterministic and unsalted by design (the caller must be able to verify
+    offline); see README for the confirmation-attack caveat this implies for
+    receipt handling in shadowed deployments.
+
+    Placement: ``outputs`` rather than ``provenance``, because thermocline's
+    provenance model is ``extra="forbid"`` and a new provenance field would
+    break ``TaskResult.parse_strict`` for every consumer.
+    """
+    import hashlib
+
+    from thermocline.canonical import canonicalize
+
+    payload = {
+        "model": model,
+        "messages": messages,
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+        "privacy_mode": privacy_mode,
+    }
+    return "sha256:" + hashlib.sha256(canonicalize(payload)).hexdigest()
+
+
 def build_task_result(
     envelope_id: str,
     responder: str,

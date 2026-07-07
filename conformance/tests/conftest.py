@@ -91,6 +91,7 @@ def conformance_forge(
     env[f"{meta['env_prefix']}_IDENTITY"] = meta["identity"]
     env["FORGE_NODE_ID"] = meta["identity"]
     env["FORGE_PORT"] = str(port)
+
     # Bind to loopback only. Default 0.0.0.0 triggers werkzeug's
     # `socket.gethostbyname(socket.gethostname())` in display_addresses,
     # which hangs ~70s on macOS arm64 GH runners between "Debug mode: off"

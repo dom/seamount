@@ -209,7 +209,7 @@ pi-forge returns a structured error body for all non-2xx responses:
 | `INVALID_PARAMETERS` | 422 | Missing, wrong-type, or out-of-range `digits` |
 | `UNSUPPORTED_VERSION` | 400 | Unrecognized `thermocline` version in envelope |
 | `UNSUPPORTED_TASK_TYPE` | 400 | `task.type` is not `data.compute` |
-| `MALFORMED_ENVELOPE` | 400/413 | Envelope is not valid JSON, is missing required fields, or exceeds the size limit |
+| `MALFORMED_ENVELOPE` | 400/413/415 | Envelope is not valid JSON, is missing required fields, exceeds the size limit, or is sent with a non-JSON `Content-Type` |
 | `SIGNATURE_INVALID` | 401 | `dispatch_signature` missing, downgraded to `none`, or fails verification (when required, the default) |
 
 ---
